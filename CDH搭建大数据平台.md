@@ -28,12 +28,8 @@ CDH 体系架构：
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/CDH_1.png)
 
-
-
-
-
-
 ---
+
 
 ## CDH 部署 Hadoop 平台
 
@@ -51,7 +47,7 @@ CDH5.x 的部署和 CDH6.x 的部署不一样，这里以 CDH6.x 部署为例子
 
 - mysql 安装包下载地址：https://dev.mysql.com/downloads/mysql/#downloads
 
-- mysql JDBC 安装包下载地址：
+- mysql JDBC 安装包下载地址：https://dev.mysql.com/downloads/connector/j/5.1.html
 
 - CM6.x（cloudera manager6.x）安装包下载地址：https://archive.cloudera.com/cm6/
 截止到目前官方 cm6.x 只有 rpm 包，cm5.x 有 tar 包
@@ -70,18 +66,20 @@ CDH5.x 的部署和 CDH6.x 的部署不一样，这里以 CDH6.x 部署为例子
 ```shell
 # 输入 hostname 命令可以查看当前系统的主机名，CentOS 系统的默认主机名为 localhost.localdomain
 hostname
+或
 hostnamectl  # 返回内容更为详细
 
 # hostnamectl 命令修改主机名（推荐）
-sudo hostnamectl set-hostname [newHostname]
+hostnamectl set-hostname [newHostname]
 # 在所有节点上把 IP 和 主机名的对应关系追加写入 /etc/hosts
 vi /etc/hosts
 # 追加具体内容形式如下：
-x.x.x.x master.hadoop
-x.x.x.x slave1.hadoop
-x.x.x.x slave2.hadoop
-x.x.x.x slave3.hadoop
+--------------------------------------------------------
+x.x.x.x [主机名]
+x.x.x.x [主机名]
+x.x.x.x [主机名]
 # 追加内容也可以为 IP、主机名（域名）和主机名简写（域名简写）
+--------------------------------------------------------
 
 # 验证设置，使用 uname -a 命令查看是否有输出匹配的主机名
 uname -a
@@ -99,8 +97,8 @@ ping [主机名]
 
 ```shell
 # 关闭防火墙并关闭防火墙的自启动（永久关闭）
-sudo systemctl stop firewalld
-sudo systemctl disable firewalld
+systemctl stop firewalld
+systemctl disable firewalld
 ```
 
 CentOS7 默认使用 firewalld，如果需要改用 iptables，需要自行安装`yum install iptables-services`并启动服务
@@ -175,11 +173,11 @@ CDH 要求集群中的每台计算机都配置 NTP 服务。**REHL7 兼容操作
 
 一般采用所有节点卸载 chrony，只使用 ntp。
 
-#### 4.1 方法一：配置 ntpd
+- 配置 ntpd
 
 master 节点作为 ntp 服务器与外界对时中心同步时间，随后对所有 slave 节点提供时间同步服务，所有 slave 节点以 master 节点为基础同步时间。
 
-首先同步时区（节点时区不一样情况下）
+1. 首先同步时区（节点时区不一样情况下）
 ```shell
 # 查看时区
 timedatectl
@@ -189,8 +187,7 @@ timedatectl list-timezones
 timedatectl set-timezones [ZONE]
 ```
 
-
-1. 安装 ntp 
+2. 所有节点安装 ntp 
 
 ```shell
 # 查看是否有 chronyd 服务及其状态
@@ -201,26 +198,31 @@ yum -y remove chrony
 yum install -y ntp
 ```
 
-2. 修改主节点配置文件，增加同步时间服务器
+3. 修改主节点配置文件，增加同步时间服务器
 ```shell
 vi /etc/ntp.conf
 
 # 添加以下内容，可更改具体服务器
+-----------------------------------------------
 server 0.asia.pool.ntp.org
 server 1.asia.pool.ntp.org
 server 2.asia.pool.ntp.org
 server 3.asia.pool.ntp.org
 
-# 互联网时间不能用时启用本地硬件时间
+# 当外部时间不可用时，可使用本地硬件时间
 server 127.127.1.0 iburst local clock
 # 设置允许连接网段
 restrict x.x.x.x mask 255.255.255.0 nomodify
+-----------------------------------------------
 ```
 
-3. 启动主节点 ntpd 服务
+4. 启动主节点 ntpd 服务
 ```shell
 # 开启 NTP 服务
 systemctl start ntpd
+
+# 查看 NTP 服务状态
+systemctl status ntpd
 
 # 配置 NTP 服务自启动
 systemctl enable ntpd
@@ -229,48 +231,33 @@ systemctl enable ntpd
 ntpq -p
 ```
 
-单台机器的时间同步
+5. 其他所有从节点停止禁用 ntpd 服务
+```shell
+# 各从节点停止 ntpd 服务
+systemctl stop ntpd
+# 各从节点禁用 ntpd 服务
+systemctl disable ntpd
 ```
-# 安装 ntpdate
+
+
+5. 所有 slave 节点同步 master 节点时间（每 10 分钟）
+```shell
+# 安装 ntpdate 服务
 yum install ntpdate
 
-# 向某个服务器同步时间，例如 ntp1.aliyun.com
-ntpdate -u <ntp_server> 
+# 在所有从节点输入命令同步主节点时间
+/usr/sbin/ntpdate [主节点名]
+或
+ntpdate [主节点名]
+
+# 设置每 10 分钟同步
+# crontab 让使用者在固定时间或固定间隔执行程序之用
+crontab -e
+# 写入
+------------------------------------------
+*/10 * * * * /usr/sbin/ntpdate [主节点名]
+------------------------------------------
 ```
-
-
-4. 所有 slave 节点同步 master 节点时间
-```
-ntpdate [主节点主机名]
-```
-
-
-
-
-
-
-#### 4.2 方法二：配置 chronyd
-
-所有节点安装
-
-yum install -y chrony
-
-
-
-
-vi /etc/chrony.conf
-
-删除默认Server
-新增阿里云服务器
-server ntp.aliyun.com iburst
-makestep 1.0 -1
-
-重启服务并查看状态是否正常并设置开机自动启动
-systemctl enable chronyd
-systemctl restart chronyd
-systemctl status chronyd
-chronyc tracking
-
 
 ---
 
@@ -292,19 +279,16 @@ ssh-keygen -t rsa
 # master 节点上采用 ssh-copy-id 命令，会自动生成 authorized_keys 文件并将公钥内容拷贝
 ssh-copy-id localhost
 # 或采用追加写入
-cat root/.ssh/id_rsa.pub >> root/.ssh/authorized_keys
+cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
 
 # 登录其他主机，拷贝其他主机的公钥内容到 master 主机上的 authorized_keys 文件中
 ssh-copy-id -i [master主机名]
-...
 
 # 授权 authorized_keys 文件
-chmod 600 root/.ssh/authorized_keys
-# 6 = 4（r） + 2（w）
+chmod 600 /root/.ssh/authorized_keys
 
 # 最后将授权文件分配到其他主机上，scp 命令
-scp root/.ssh/authorized_keys root@[slave主机名]:root/.ssh/
-...
+scp /root/.ssh/authorized_keys root@[slave主机名]:/root/.ssh/
 # 可以使用同步脚本对配置文件同步发放
 
 # 验证
@@ -313,7 +297,7 @@ ssh root@[主机名]
 
 # （可做）
 # ssh 远程登录一个节点后会自动生成 root/.ssh/known_hosts 文件，可以远程登录所有节点后将其分发到各节点
-scp root/.ssh/known_hosts root@[slave主机名]:root/.ssh/
+scp /root/.ssh/known_hosts root@[slave主机名]:/root/.ssh/
 ```
 
 ---
@@ -338,7 +322,7 @@ rpm -e --nodeps [openjdk文件名]
 mkdir -p /usr/java
 
 # 解压 jdk 安装包到 /usr/java 目录下，注意不能更换路径
-tar -xvfz /path/to/jdk-8u<update_version>-linux-x64.tar.gz -C /usr/java/
+tar -xvzf /path/to/jdk-8u181-linux-x64.tar.gz -C /usr/java/
 
 # 查看文件所属的用户组，如果不是 root:root 则需要更改文件所属的用户、用户组
 chown -R root:root /usr/java
@@ -358,6 +342,7 @@ vi /etc/profile
 
 ```shell
 # 追加写入环境变量
+-------------------------------------------------
 # env 已设置软链接
 export JAVA_HOME=/usr/java/current
 export JRE_HOME=$JAVA_HOME/jre
@@ -366,11 +351,15 @@ export CLASSPATH=.:$JAVA_HOME/lib:$JRE_HOME/lib
 
 -------------------------------------------------
 
+或
+
+-------------------------------------------------
 # env 未设置软链接
 export JAVA_HOME=/usr/java/jdk1.8.0_181
 export JRE_HOME=$JAVA_HOME/jre
 export PATH=$PATH:$JAVA_HOME/bin
 export CLASSPATH=.:$JAVA_HOME/lib:$JRE_HOME/lib
+-------------------------------------------------
 ```
 
 - 生效环境变量
@@ -411,8 +400,7 @@ rpm -e --nodeps [mysql-libs文件名]
 rpm -e --nodeps [mariadb-libs文件名]
 ```
 
-
-- 解压缩安装包，部署Mysql
+- 解压缩 Mysql 安装包
 ```shell
 # 解压 tar 包到 /usr/local（软件目录），重命名为 mysql
 # 在安装包位置处解压，也可使用绝对路径
@@ -420,65 +408,93 @@ tar -zxvf mysql-5.7.28-el7-x86_64.tar.gz -C /usr/local/
 mv /usr/local/mysql-5.7.28-el7-x86_64/ /usr/local/mysql 
 ```
 
-
 - 更改所属用户和用户组（需要先添加用户组和用户）
 ```shell
+# 创建数据存放目录 /usr/local/mysql/data
+cd /usr/local/mysql
+mkdir data arch tmp
+
 # 添加用户组 mysql 和用户 mysql
-# 选择性可做（设置 mysql 用户禁止登陆系统）
 groupadd mysql
-useradd -g mysql -s /sbin/nologin mysql     ？？？
-或
-useradd -r -g mysql mysql     ？？？
-
-# 拷贝隐藏文件
-cp /etc/skel/.* /usr/local/mysql
-
-# 创建数据存放目录 /usr/local/mysql/data 
-mkdir /usr/local/mysql/data
+useradd -r -g mysql -G root mysql    
 
 # 更改目录及目录下文件的用户和用户组
 chown -R mysql:mysql /usr/local/mysql/
 chown -R mysql:mysql /usr/local/mysql/data
 ```
 
+- 编辑配置文件 my.cnf，添加配置如下：
+```shell
+# 创建并编辑配置文件
+vi /etc/my.cnf 
 
+# 追加写入
+------------------------------------------------------------
+[client]
+port = 3306
+socket = /usr/local/mysql/data/mysql.sock
+default-character-set = utf8mb4
+
+[mysqld]
+port = 3306
+socket = /usr/local/mysql/data/mysql.sock
+
+
+key_buffer_size = 256M
+sort_buffer_size = 2M
+read_buffer_size = 2M
+read_rnd_buffer_size = 4M
+query_cache_size= 32M
+max_allowed_packet = 16M
+myisam_sort_buffer_size = 128M
+tmp_table_size = 32M
+thread_cache_size = 8
+
+# network & connection
+table_open_cache = 512
+
+wait_timeout = 86400
+interactive_timeout = 86400
+max_connections = 600
+
+basedir = /usr/local/mysql
+datadir = /usr/local/mysql/data
+
+#isolation level and default engine 
+default-storage-engine = INNODB
+transaction-isolation = READ-COMMITTED
+
+innodb_file_per_table = 1
+innodb_flush_log_at_trx_commit  = 2
+innodb_log_buffer_size = 64M
+innodb_buffer_pool_size = 4G
+innodb_thread_concurrency = 8
+innodb_flush_method = O_DIRECT
+innodb_log_file_size = 512M
+
+[mysql]
+auto-rehash
+default-character-set=utf8mb4
+
+[mysqld_safe]
+log-error=/var/log/mysqld.log
+pid-file=/var/run/mysqld/mysqld.pid
+sql_mode=STRICT_ALL_TABLES
+------------------------------------------------------------
 ```
-vi .bashrc
-
-export MYSQL_BASE=/usr/local/mysql
-export PATH=$MYSQL_BASE/bin:$PATH
-
-```
-
-
 
 - 初始化MySQL
-
 ```shell
 # 更改安装文件夹 mysql 的权限，进入 mysql 目录，并初始化 mysql
 chmod -R 755 /usr/local/mysql/
 cd /usr/local/mysql/
 bin/mysqld --initialize --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data
+
 # 需要链接库文件 libaio（系统没安装时会报错并且需要安装）
                                         ↓
 # 注意会生成 root@localhost 登录 mysql 数据库的临时密码，密码是随机的（每个人生成的临时密码不一样）
-[Note] A temporary password is generated for root@localhost: o*s#gqh)F4Ck
+[Note] A temporary password is generated for root@localhost: g7symwg+tJ<N
 ```
-
-
-
-
-```
-vi .bashrc
-
-
-
-```
-
-
-
-
-
 
 - 设置环境变量
 ```shell
@@ -493,131 +509,6 @@ export PATH=$PATH:/usr/local/mysql/bin
 source /etc/profile
 ```
 
-
-```
-# 软链接
-ln -s /usr/local/mysql/lib/mysql /usr/lib/mysql
-ln -s /usr/local/mysql/include/mysql /usr/include/mysql
-```
-
-
-
-
-
-- 编辑配置文件 my.cnf，添加配置如下：
-```shell
-# 注意"log-error"，"pid-file"与"socket"的路径
-mkdir -p /usr/local/mysql/etc
-vi /usr/local/mysql/etc/my.cnf  
-
-或
-
-vi /etc/my.cnf
-
-
-[mysqld]
-character-set-server=utf8
-max_connections = 3000
-log-error=/var/log/mysqld/mysqld.log
-pid-file=/var/run/mysqld/mysqld.pid
-socket=/var/lib/mysqld/mysql.sock
-sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
-
-datadir=/usr/local/mysql/data
-port = 3306
-sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
-symbolic-links=0
-max_connections=400
-innodb_file_per_table=1
-#表名大小写不明感，敏感为
-lower_case_table_names=1
-
-
-[client]
-no-beep
-socket =/software/mysql/mysql.sock
-# pipe
-# socket=0.0
-port=3306
-[mysql]
-default-character-set=utf8
-[mysqld]
-basedir=
-datadir=
-port=3306
-pid-file=/software/mysql/mysqld.pid
-#skip-grant-tables
-skip-name-resolve
-socket = /software/mysql/mysql.sock
-character-set-server=utf8
-default-storage-engine=INNODB
-explicit_defaults_for_timestamp = true
-# Server Id.
-server-id=1
-max_connections=2000
-query_cache_size=0
-table_open_cache=2000
-tmp_table_size=246M
-thread_cache_size=300
-#限定用于每个数据库线程的栈大小。默认设置足以满足大多数应用
-thread_stack = 192k
-key_buffer_size=512M
-read_buffer_size=4M
-read_rnd_buffer_size=32M
-innodb_data_home_dir = /data/mysql
-innodb_flush_log_at_trx_commit=0
-innodb_log_buffer_size=16M
-innodb_buffer_pool_size=256M
-innodb_log_file_size=128M
-innodb_thread_concurrency=128
-innodb_autoextend_increment=1000
-innodb_buffer_pool_instances=8
-innodb_concurrency_tickets=5000
-innodb_old_blocks_time=1000
-innodb_open_files=300
-innodb_stats_on_metadata=0
-innodb_file_per_table=1
-innodb_checksum_algorithm=0
-back_log=80
-flush_time=0
-join_buffer_size=128M
-max_allowed_packet=1024M
-max_connect_errors=2000
-open_files_limit=4161
-query_cache_type=0
-sort_buffer_size=32M
-table_definition_cache=1400
-binlog_row_event_max_size=8K
-sync_master_info=10000
-sync_relay_log=10000
-sync_relay_log_info=10000
-#批量插入数据缓存大小，可以有效提高插入效率，默认为8M
-bulk_insert_buffer_size = 64M
-interactive_timeout = 120
-wait_timeout = 120
-log-bin-trust-function-creators=1
-sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
-
-# include all files from the config directory
-!includedir /etc/my.cnf.d
-```
-
-
-mkdir mysql/arch mysql/tmp
-
-```
-# 软链接
-ln -s /usr/local/mysql/etc/my.cnf /etc/my.cnf
-
-# 赋权
-chown -R mysql:mysql /usr/local/mysql/etc/
-```
-
-
-
-
-
-
 - 设置开机启动
 ```shell
 # 复制开机启动脚本到系统服务
@@ -625,50 +516,44 @@ cp /usr/local/mysql/support-files/mysql.server /etc/rc.d/init.d/mysqld
 chown mysql:mysql /etc/rc.d/init.d/mysqld
 
 # 赋予可执行权限
-chmod +x /etc/init.d/mysqld
+chmod +x /etc/rc.d/init.d/mysqld
 
-# 修改默认的"basedir"与"datadir"
-vim /etc/rc.d/init.d/mysqld
-
-basedir=/usr/local/mysql
-datadir=/usr/local/mysql/data
-
-# 添加开机启动脚本
+# 添加服务
 chkconfig --add mysqld
-chkconfig --level 35 mysqld on
+chkconfig --level 345 mysqld on
 ```
 
-
-
-
-- 启动MySQL服务
+- 启动 MySQL 服务
 ```
 # 启动服务
+systemctl start mysqld
+或
 service mysqld start
 
 # 验证
+systemctl status mysqld
+或
 service mysqld status
 ```
-
 
 - 设置MySQL账号密码与登陆权限
 ```shell
 # 使用初始化密码登陆
-mysql -uroot -p
+mysql -uroot -p'初始密码'
 
 # 修改密码，注意不能使用"$"等特殊符号
-set password=password('cdh12#hadoop');
-flush privileges;
+mysql> set password=password('cdh123456');
+mysql> flush privileges;
 
 # 远程登陆权限
-grant all privileges on *.*  to  'root'@'%'  identified by 'cdh12#hadoop'  with grant option;
-flush privileges;
+mysql> grant all privileges on *.*  to  'root'@'%'  identified by 'cdh123456'  with grant option;
+mysql> flush privileges;
+mysql> exit
 
 # 重启服务
+systemctl restart mysqld
+或
 service mysqld restart
-
-# 查看账号
-select user, host, authentication_string from mysql.user;
 ```
 
 ---
@@ -677,15 +562,16 @@ select user, host, authentication_string from mysql.user;
 
 根据所需要安装的服务参照下表创建对应的数据库以及数据库用户，数据库必须使用utf8编码，创建数据库时要记录好用户名及对应密码：
 
-服务名                                 数据库名     用户名
-Cloudera Manager Server                scm         scm
-Activity Monitor                       amon        amon
-Reports Manager                        rman        rman
-Hue                                    hue         hue
-Hive Metastore Server                  metastore   hive
-Sentry Server                          sentry      sentry
-Cloudera Navigator Audit Server        nav         nav
-Cloudera Navigator Metadata Server     navms       navms
+|服务名|数据库名|用户名|
+|----|----|----|
+|Cloudera Manager Server           |  scm       |   scm    |
+|Activity Monitor                  |  amon      |   amon   |
+|Reports Manager                   |  rman      |   rman   |
+|Hue                               |  hue       |   hue    |
+|Hive Metastore Server             |  metastore |   hive   |
+|Sentry Server                     |  sentry    |   sentry |
+|Cloudera Navigator Audit Server   |  nav       |   nav    |
+|Cloudera Navigator Metadata Server|  navms     |   navms  |
 
 
 
@@ -694,12 +580,14 @@ mysql -u root -p
 
 # 先创建4个数据库及对应用户，操作步骤如下
 mysql> CREATE DATABASE scm DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+mysql> CREATE DATABASE cmf DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 mysql> CREATE DATABASE amon DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 mysql> CREATE DATABASE rman DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 mysql> CREATE DATABASE metastore DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 
 # 然后为数据库授权设置密码并FLUSH
 mysql> GRANT ALL PRIVILEGES ON scm.* TO 'scm'@'%' IDENTIFIED BY '密码';
+mysql> GRANT ALL PRIVILEGES ON cmf.* TO 'cmf'@'%' IDENTIFIED BY '密码';
 mysql> GRANT ALL PRIVILEGES ON amon.* TO 'amon'@'%' IDENTIFIED BY '密码';
 mysql> GRANT ALL PRIVILEGES ON rman.* TO 'rman'@'%' IDENTIFIED BY '密码';
 mysql> GRANT ALL PRIVILEGES ON metastore.* TO 'hive'@'%' IDENTIFIED BY '密码';
@@ -707,10 +595,10 @@ mysql> FLUSH PRIVILEGES;
 
 # 查看授权是否正确
 mysql> SHOW GRANTS FOR 'scm'@'%';
+mysql> SHOW GRANTS FOR 'cmf'@'%';
 mysql> SHOW GRANTS FOR 'amon'@'%';
 mysql> SHOW GRANTS FOR 'rman'@'%';
 mysql> SHOW GRANTS FOR 'hive'@'%';
-
 ```
 
 
@@ -723,7 +611,7 @@ mysql> SHOW GRANTS FOR 'hive'@'%';
 mkdir -p /usr/share/java
 
 # 重命名去除版本号
-cp mysql-connector-java-5.1.47.jar /usr/share/java/mysql-connector-java.jar
+cp mysql-connector-java-5.1.48.jar /usr/share/java/mysql-connector-java.jar
 
 # 赋予权限
 cd /usr/share/java
@@ -738,10 +626,6 @@ chmod 777 mysql-connector-java.jar
 echo never > /sys/kernel/mm/transparent_hugepage/defrag
 echo never > /sys/kernel/mm/transparent_hugepage/enabled
 ```
-
-永久生效 在/etc/rc.local 添加上面命令
-给与可执行权限：chmod +x /etc/rc.d/rc.local
-
 ---
 
 
@@ -759,61 +643,58 @@ rpm 安装包如下表所示：
 |cloudera-manager-daemons-6.3.1-1466458.el7.x86_64.rpm|	2019-10-11 08:42| 1.00GB|
 |cloudera-manager-server-6.3.1-1466458.el7.x86_64.rpm| 2019-10-11 08:42| 11.00KB|
 
-主节点
+- 主节点
 ```shell
 # rpm 解压（不安装依赖）
 rpm -ivh cloudera-manager-daemons-6.3.1-1466458.el7.x86_64.rpm --nodeps --force
 rpm -ivh cloudera-manager-server-6.3.1-1466458.el7.x86_64.rpm --nodeps --force
+rpm -ivh cloudera-manager-agent-6.3.1-1466458.el7.x86_64.rpm --nodeps --force
 
-# 编辑 /etc/cloudera-scm-server/db.properties
+# 编辑配置文件 /etc/cloudera-scm-server/db.properties
 cd /etc/cloudera-scm-server/
 vi db.properties
 
 # 追加写入、修改
+----------------------------------------------------
 com.cloudera.scm.db.host=[节点名]:3306
 com.cloudera.scm.db.name=scm
 com.cloudera.scm.db.user=scm
 com.cloudera.scm.db.password=[密码]
 com.cloudera.scm.db.setupType=EXTERNAL
+----------------------------------------------------
 
 # 启动服务，查看日志
 cd /var/log/cloudera-scm-server
 service cloudera-scm-server start
 tail -F cloudera-scm-server.log
 # 等待 7180 端口服务启动，打开 7180 端口 web 界面
-
-
-# 
-rpm -ivh cloudera-manager-agent-6.3.1-1466458.el7.x86_64.rpm --nodeps --force
-
-vi /etc/cloudera-scm-agent/config.ini
-
-server_host=[主节点名]
-
 ```
 
-从节点
+- 从节点
 ```shell
-# 在主节点上拷贝
-scp cloudera-manager-agent-6.3.1-1466458.el7.x86_64.rpm [slave主机名]:root/CDH
-scp cloudera-manager-daemons-6.3.1-1466458.el7.x86_64.rpm [slave主机名]:root/CDH
+# 在从节点
+rpm -ivh cloudera-manager-daemons-6.3.1-1466458.el7.x86_64.rpm --nodeps --force
+rpm -ivh cloudera-manager-agent-6.3.1-1466458.el7.x86_64.rpm --nodeps --force
+```
 
+- 所有节点
+```shell
+# 服务创建 /usr/lib/systemd/system/
 vi /etc/cloudera-scm-agent/config.ini
 
+# 修改 server_host
+-------------------------------------------
 server_host=[主节点名]
-```
+-------------------------------------------
 
-所有节点启动agent服务
-```
+# 所有节点启动agent服务
 service cloudera-scm-agent start
-
 ```
 
 
-- 创建本地parcel源
+- 创建本地 parcel 源
   
-在master节点制作本地parcel源
-
+在 master 节点制作本地 parcel 源，parcel 源目录下文件主要如下
 
 |Name|	Last Modified|	Size|
 |----|----|----|
@@ -822,24 +703,21 @@ service cloudera-scm-agent start
 |manifest.json|	2019-10-11 08:45| 33.00KB|
 
 
-
 ```shell
+# 安装 http 服务
 yum install -y httpd
 
-# 创建本地parcel源目录
+# 创建本地 parcel 源目录
 mkdir -p /var/www/html/cdh6_parcel
 
-将上述cdh6.1/cm6.1目录移动到/var/www/html目录下, 使得用户可以通过HTTP访问这些rpm包
-
-# 将parcel相关安装包放置到"/opt/cloudera/parcel-repo"目录；
-# 说明："/opt/cloudera/parcel-repo"目录可放置多套parcel安装包；
-# 将"CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha1"重命名为"CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha"，否则会重新下载"CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel"安装包
-mv CDH-6.3.1-1.cdh6.3.1.p0.1466458-el7.parcel /var/www/html/cdh6_parcel
+# 将上述 parcel 目录移动到 /var/www/html目录下, 使得用户可以通过 HTTP 访问这些 rpm 包
+# 将 CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha1 重命为 CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
+mv CDH-6.3.1-1.cdh6.3.1.p0.1466458-el7.parcel /var/www/html/cdh6_parcel/
 mv CDH-6.3.1-1.cdh6.3.1.p0.1466458-el7.parcel.sha1 /var/www/html/cdh6_parcel/CDH-6.3.1-1.cdh6.3.1.p0.1466458-el7.parcel.sha
 mv manifest.json /var/www/html/cdh6_parcel
 
 # 启动服务
-service httpd start
+systemctl start httpd
 # 设置httpd服务开机自启
 systemctl enable httpd.service 
 
@@ -863,7 +741,7 @@ http://[主机ip]:7180/cmf/login 访问CM
 
 Welcome——>Cluster Basics——>Specify Hosts——>Select Repository——>Install Parcels——>Inspect Cluster——>Enter Login Credentials——>Install Agents
 
-
+```
 Cluster Basics：设置 Cluster Name 
 
 Specify Hosts：两种方式：New Hosts和Currently Managed Hosts（已经启动的agent）
@@ -895,10 +773,10 @@ Setup Database
 Review Changes：
     DataNode Data Directory：修改为多块磁盘，逗号分隔，学习默认
 
-Command Details：
+Command Details
 
-Summary：
-
+Summary
+```
 
 
 
