@@ -43,7 +43,7 @@ CDH5.x 的部署和 CDH6.x 的部署不一样，这里以 CDH6.x 部署为例子
 离线安装需要准备的安装包如下图所示： 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/CDH_6.png)  
 
-- jdk 安装包下载地址：https://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
+- jdk 安装包下载地址：https://www.oracle.com/technetwork/java/javase/downloads/index.html
 
 - mysql 安装包下载地址：https://dev.mysql.com/downloads/mysql/#downloads
 
@@ -302,7 +302,21 @@ scp /root/.ssh/known_hosts root@[slave主机名]:/root/.ssh/
 
 ---
 
-#### 6.安装 JDK
+#### 6.大页面
+
+禁用透明页(所有节点）
+
+```shell
+echo never > /sys/kernel/mm/transparent_hugepage/defrag
+echo never > /sys/kernel/mm/transparent_hugepage/enabled
+```
+
+---
+
+
+### JDK 与 数据库的安装
+
+#### 1.安装 JDK
 
 使用 Oracle 的 jdk，例如使用`jdk-8u181-linux-x64`版本。
 
@@ -315,6 +329,15 @@ rpm -qa|grep jdk
 rpm -e --nodeps [openjdk文件名]
 ```
 
+- yum 安装
+
+```
+yum install -y oracle-j2sdk1.8-1.8.0+update181-1.x86_64.rpm
+
+```
+
+
+
 - 离线安装：将已下载好的 jdk 软件包解压到`/usr/java`，CDH 默认加载此路径。
 
 ```shell
@@ -322,7 +345,7 @@ rpm -e --nodeps [openjdk文件名]
 mkdir -p /usr/java
 
 # 解压 jdk 安装包到 /usr/java 目录下，注意不能更换路径
-tar -xvzf /path/to/jdk-8u181-linux-x64.tar.gz -C /usr/java/
+tar -xvzf jdk-8u181-linux-x64.tar.gz -C /usr/java/
 
 # 查看文件所属的用户组，如果不是 root:root 则需要更改文件所属的用户、用户组
 chown -R root:root /usr/java
@@ -346,7 +369,7 @@ vi /etc/profile
 # env 已设置软链接
 export JAVA_HOME=/usr/java/current
 export JRE_HOME=$JAVA_HOME/jre
-export PATH=$PATH:$JAVA_HOME/bin
+export PATH=$JAVA_HOME/bin:$PATH
 export CLASSPATH=.:$JAVA_HOME/lib:$JRE_HOME/lib
 
 -------------------------------------------------
@@ -357,7 +380,7 @@ export CLASSPATH=.:$JAVA_HOME/lib:$JRE_HOME/lib
 # env 未设置软链接
 export JAVA_HOME=/usr/java/jdk1.8.0_181
 export JRE_HOME=$JAVA_HOME/jre
-export PATH=$PATH:$JAVA_HOME/bin
+export PATH=$JAVA_HOME/bin:$PATH
 export CLASSPATH=.:$JAVA_HOME/lib:$JRE_HOME/lib
 -------------------------------------------------
 ```
@@ -373,8 +396,8 @@ source /etc/profile
 ```shell
 which java
 # 查看版本
-java -verion
 java
+java -verion
 ```
 
 - 其他节点可以将配置同步过去即可 
@@ -383,9 +406,13 @@ java
 scp /etc/profile [主机名]:/etc/
 ```
 
+
+
+
+
 ---
 
-#### 7.安装 Mysql
+#### 2.安装 Mysql
 
 Mysql 用于 master 节点元数据的存储
 
@@ -448,7 +475,7 @@ query_cache_size= 32M
 max_allowed_packet = 16M
 myisam_sort_buffer_size = 128M
 tmp_table_size = 32M
-thread_cache_size = 8
+thread_cache_size = 64
 
 # network & connection
 table_open_cache = 512
@@ -481,6 +508,8 @@ log-error=/var/log/mysqld.log
 pid-file=/var/run/mysqld/mysqld.pid
 sql_mode=STRICT_ALL_TABLES
 ------------------------------------------------------------
+
+chown mysql:mysql /etc/mysql
 ```
 
 - 初始化MySQL
@@ -558,7 +587,7 @@ service mysqld restart
 
 ---
 
-#### 8.在 Mysql 创建 CDH 数据库
+#### 3.在 Mysql 创建 CDH 数据库
 
 根据所需要安装的服务参照下表创建对应的数据库以及数据库用户，数据库必须使用utf8编码，创建数据库时要记录好用户名及对应密码：
 
@@ -580,14 +609,12 @@ mysql -u root -p
 
 # 先创建4个数据库及对应用户，操作步骤如下
 mysql> CREATE DATABASE scm DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-mysql> CREATE DATABASE cmf DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 mysql> CREATE DATABASE amon DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 mysql> CREATE DATABASE rman DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 mysql> CREATE DATABASE metastore DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 
 # 然后为数据库授权设置密码并FLUSH
 mysql> GRANT ALL PRIVILEGES ON scm.* TO 'scm'@'%' IDENTIFIED BY '密码';
-mysql> GRANT ALL PRIVILEGES ON cmf.* TO 'cmf'@'%' IDENTIFIED BY '密码';
 mysql> GRANT ALL PRIVILEGES ON amon.* TO 'amon'@'%' IDENTIFIED BY '密码';
 mysql> GRANT ALL PRIVILEGES ON rman.* TO 'rman'@'%' IDENTIFIED BY '密码';
 mysql> GRANT ALL PRIVILEGES ON metastore.* TO 'hive'@'%' IDENTIFIED BY '密码';
@@ -595,14 +622,24 @@ mysql> FLUSH PRIVILEGES;
 
 # 查看授权是否正确
 mysql> SHOW GRANTS FOR 'scm'@'%';
-mysql> SHOW GRANTS FOR 'cmf'@'%';
 mysql> SHOW GRANTS FOR 'amon'@'%';
 mysql> SHOW GRANTS FOR 'rman'@'%';
 mysql> SHOW GRANTS FOR 'hive'@'%';
+
+# 删除授权信息
+mysql> DROP USER 'scm'@'%';
+mysql> DROP USER 'amon'@'%';
+mysql> DROP USER 'rman'@'%';
+mysql> DROP USER 'hive'@'%';
+
+# 授权 root 用户在主节点拥有所有数据库的访问权限
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'master' IDENTIFIED BY '密码' WITH GRANT OPTION;
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '密码' WITH GRANT OPTION;
+mysql> FLUSH PRIVILEGES;
 ```
 
 
-#### 9.安装jdbc驱动
+#### 4.安装jdbc驱动
 
 在所有节点部署 mysql jdbc jar 包
 
@@ -618,15 +655,57 @@ cd /usr/share/java
 chmod 777 mysql-connector-java.jar
 ```
 
-#### 10.大页面
+#### 3.在 Mysql 创建 CDH 数据库
 
-禁用透明页(所有节点）
+根据所需要安装的服务参照下表创建对应的数据库以及数据库用户，数据库必须使用utf8编码，创建数据库时要记录好用户名及对应密码：
+
+|服务名|数据库名|用户名|
+|----|----|----|
+|Cloudera Manager Server           |  scm       |   scm    |
+|Activity Monitor                  |  amon      |   amon   |
+|Reports Manager                   |  rman      |   rman   |
+|Hue                               |  hue       |   hue    |
+|Hive Metastore Server             |  metastore |   hive   |
+|Sentry Server                     |  sentry    |   sentry |
+|Cloudera Navigator Audit Server   |  nav       |   nav    |
+|Cloudera Navigator Metadata Server|  navms     |   navms  |
+
+
 
 ```shell
-echo never > /sys/kernel/mm/transparent_hugepage/defrag
-echo never > /sys/kernel/mm/transparent_hugepage/enabled
+mysql -u root -p
+
+# 先创建4个数据库及对应用户，操作步骤如下
+mysql> CREATE DATABASE scm DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+mysql> CREATE DATABASE amon DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+mysql> CREATE DATABASE rman DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+mysql> CREATE DATABASE metastore DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+
+# 然后为数据库授权设置密码并FLUSH
+mysql> GRANT ALL PRIVILEGES ON scm.* TO 'scm'@'%' IDENTIFIED BY '密码';
+mysql> GRANT ALL PRIVILEGES ON amon.* TO 'amon'@'%' IDENTIFIED BY '密码';
+mysql> GRANT ALL PRIVILEGES ON rman.* TO 'rman'@'%' IDENTIFIED BY '密码';
+mysql> GRANT ALL PRIVILEGES ON metastore.* TO 'hive'@'%' IDENTIFIED BY '密码';
+mysql> FLUSH PRIVILEGES;
+
+# 查看授权是否正确
+mysql> SHOW GRANTS FOR 'scm'@'%';
+mysql> SHOW GRANTS FOR 'amon'@'%';
+mysql> SHOW GRANTS FOR 'rman'@'%';
+mysql> SHOW GRANTS FOR 'hive'@'%';
+
+# 删除授权信息
+mysql> DROP USER 'scm'@'%';
+mysql> DROP USER 'amon'@'%';
+mysql> DROP USER 'rman'@'%';
+mysql> DROP USER 'hive'@'%';
+
+# 授权 root 用户在主节点拥有所有数据库的访问权限
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'master' IDENTIFIED BY '密码' WITH GRANT OPTION;
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '密码' WITH GRANT OPTION;
+mysql> FLUSH PRIVILEGES;
 ```
----
+
 
 
 ### CM 安装部署
@@ -656,11 +735,11 @@ vi db.properties
 
 # 追加写入、修改
 ----------------------------------------------------
-com.cloudera.scm.db.host=[节点名]:3306
-com.cloudera.scm.db.name=scm
-com.cloudera.scm.db.user=scm
-com.cloudera.scm.db.password=[密码]
-com.cloudera.scm.db.setupType=EXTERNAL
+com.cloudera.cmf.db.host=[节点名]:3306
+com.cloudera.cmf.db.name=scm
+com.cloudera.cmf.db.user=scm
+com.cloudera.cmf.db.password=[密码]
+com.cloudera.cmf.db.setupType=EXTERNAL
 ----------------------------------------------------
 
 # 启动服务，查看日志
@@ -698,28 +777,27 @@ service cloudera-scm-agent start
 
 |Name|	Last Modified|	Size|
 |----|----|----|
-|CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel| 2019-10-11 08:45| 1.00GB|
-|CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha1| 2019-10-11 08:45|	40B|
-|manifest.json|	2019-10-11 08:45| 33.00KB|
+|`CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel`| 2019-10-11 08:45| 1.00GB|
+|`CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha1`| 2019-10-11 08:45|	40B|
+|`manifest.json`| 2019-10-11 08:45| 33.00KB|
 
 
 ```shell
 # 安装 http 服务
 yum install -y httpd
+# 启动服务
+systemctl start httpd
+# 设置httpd服务开机自启
+systemctl enable httpd.service 
 
 # 创建本地 parcel 源目录
 mkdir -p /var/www/html/cdh6_parcel
 
 # 将上述 parcel 目录移动到 /var/www/html目录下, 使得用户可以通过 HTTP 访问这些 rpm 包
 # 将 CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha1 重命为 CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
-mv CDH-6.3.1-1.cdh6.3.1.p0.1466458-el7.parcel /var/www/html/cdh6_parcel/
-mv CDH-6.3.1-1.cdh6.3.1.p0.1466458-el7.parcel.sha1 /var/www/html/cdh6_parcel/CDH-6.3.1-1.cdh6.3.1.p0.1466458-el7.parcel.sha
-mv manifest.json /var/www/html/cdh6_parcel
-
-# 启动服务
-systemctl start httpd
-# 设置httpd服务开机自启
-systemctl enable httpd.service 
+cp CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel /var/www/html/cdh6_parcel/
+cp CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha1 /var/www/html/cdh6_parcel/CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha
+cp manifest.json /var/www/html/cdh6_parcel
 
 # 验证，浏览器中直接输入IP/cdh6_parcel可以直接访问/var/www/html/cdh6_parcel目录及其文件
 # 检查端口是否监听
@@ -729,7 +807,185 @@ netstat -lnpt | grep 7180
 
 
 
-#### 2.web 界面部署-CDH的安装
+
+
+
+---
+
+
+
+#### 在线+离线
+
+- 主节点
+```shell
+# 主节点安装 CM server & agent，会自动下载一些依赖包
+yum -y install cloudera-manager-daemons-6.3.1-1466458.el7.x86_64.rpm
+yum -y install cloudera-manager-server-6.3.1-1466458.el7.x86_64.rpm
+yum -y install cloudera-manager-agent-6.3.1-1466458.el7.x86_64.rpm
+```
+
+- 从节点
+```shell
+# 从节点安装 CM agent，会自动下载一些依赖包
+yum -y install cloudera-manager-daemons-6.3.1-1466458.el7.x86_64.rpm
+yum -y install cloudera-manager-agent-6.3.1-1466458.el7.x86_64.rpm
+```
+
+- 初始化 CM 的数据库
+```shell
+/opt/cloudera/cm/schema/scm_prepare_database.sh mysql -hlocalhost scm scm
+
+/opt/cloudera/cm/schema/scm_prepare_database.sh mysql -hlocalhost -uroot -p'cdh123' scm scm
+
+```
+
+- 所有节点修改 agent 配置
+```shell
+# 在所有节点上执行修改 agent 的配置
+vi /etc/cloudera-scm-agent/config.ini
+
+# 修改 server_host
+-------------------------------------------
+server_host=[主节点名]
+-------------------------------------------
+```
+
+- parcel 源
+
+parcel 源目录下文件如下所示：
+
+|Name|	Last Modified|	Size|
+|----|----|----|
+|CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel| 2019-10-11 08:45| 1.00GB|
+|CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha1| 2019-10-11 08:45|	40B|
+|manifest.json|	2019-10-11 08:45| 33.00KB|
+
+将相关文件拷贝到主节点目录`/opt/cloudera/parcel-repo/`
+
+```shell
+# 安装 http 服务
+yum install -y httpd
+# 启动服务
+systemctl start httpd
+# 设置 httpd 服务开机自启
+systemctl enable httpd.service 
+
+# 将相关文件拷贝到主节点/opt/cloudera/parcel-repo/
+# 将 CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha1 重命为 CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
+cp CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel /opt/cloudera/parcel-repo
+
+cp CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha1 /opt/cloudera/parcel-repo/CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha
+
+cp manifest.json /opt/cloudera/parcel-repo
+```
+
+- 启动 CM server & agent 服务
+```shell
+# 主节点启动 server & agent 服务
+systemctl start cloudera-scm-server
+systemctl start cloudera-scm-agent
+
+# 从节点启动 agent 服务
+systemctl start cloudera-scm-agent
+```
+
+
+
+构建本地 yum 源
+
+后续增加节点，节点自动通过 http 服务下载主节点的 yum 源
+
+主节点
+```shell
+yum install -y createrepo
+
+cd /var/www/html/cm6
+createrepo .
+
+
+# 安装 http 服务
+yum install -y httpd
+# 启动服务
+systemctl start httpd
+# 设置 httpd 服务开机自启
+systemctl enable httpd.service 
+
+
+使用本地浏览器访问IP/cm6等。需要修改cm6等文件夹权限
+
+chmod -R 755 cm6ll
+
+
+```
+
+
+所有节点
+
+```shell
+cat >> /etc/yum.repos.d/cm6.repo << EOF
+[cm-local]
+name=cm6-local
+baseurl=http://cdh001/cm6
+enabled=1
+gpgcheck=0
+EOF
+```
+
+查看yum源是否生效
+
+```
+yum clean all
+yum repolist
+
+
+
+
+在所有节点安装cm6和其他依赖
+
+```shell
+yum install -y bind-utils libxslt cyrus-sasl-plain cyrus-sasl-gssapi portmap fuse-libs /lib/lsb/init-functions httpd mod_ssl openssl-devel python-psycopg2 MySQL-python fuse log4j
+
+```
+
+主节点
+```shell
+yum install -y cloudera-manager-daemons 
+yum install -y cloudera-manager-server 
+yum install -y cloudera-manager-server-db-2
+```
+
+
+执行CM数据库初始化脚本
+```shell
+/opt/cloudera/cm/schema/scm_prepare_database.sh mysql -h localhost -uroot -pcdh123 --scm-host localhost scm scm cdh123
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+### web 界面部署-CDH的安装
 
 http://[主机ip]:7180/cmf/login 访问CM
 
@@ -777,6 +1033,92 @@ Command Details
 
 Summary
 ```
+
+
+
+
+
+cm5
+
+
+```shell
+
+mkdir /opt/cloudera-manager
+
+tar -xzvf cloudera-manager-centos7-cm5.16.1_x86_64.tar.gz -C /opt/cloudera-manager/
+
+# 所有节点修改 agent 配置
+cd /opt/cloudera-manager/cm-5.16.1/etc/cloudera-scm-agent/
+vi config.ini
+-------------------------------------------
+server_host=cdh001
+-------------------------------------------
+
+# 主节点修改 server 配置
+cd /opt/cloudera-manager/cm-5.16.1/etc/cloudera-scm-server/
+vi db.properties
+---------------------------------------
+com.cloudera.cmf.db.type=mysql
+com.cloudera.cmf.db.host=localhost
+com.cloudera.cmf.db.name=cmf
+com.cloudera.cmf.db.user=cmf
+com.cloudera.cmf.db.password=cdh123
+com.cloudera.cmf.db.setupType=EXTERNAL
+----------------------------------------
+
+# 所有节点创建cloudera-scm用户，修改文件夹用户、用户组
+useradd --system --home=/opt/cloudera-manager/cm-5.16.1/run/cloudera-scm-server/ --no-create-home --shell=/bin/false cloudera-scm
+chown -R cloudera-scm:cloudera-scm /opt/cloudera-manager
+
+# parcel文件离线源（主节点）
+mkdir -p /opt/cloudera/parcel-repo/
+
+# 将相关文件拷贝到主节点/opt/cloudera/parcel-repo/
+cp CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel /opt/cloudera/parcel-repo/
+cp CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha1 /opt/cloudera/parcel-repo/CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
+cp manifest.json /opt/cloudera/parcel-repo/
+
+# 校验文件是否损坏
+/usr/bin/sha1sum CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel
+
+cat CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
+
+# 检查数值是否一致
+703728dfa7690861ecd3a9bcd412b04ac8de7148
+
+# 修改权限
+chown -R cloudera-scm:cloudera-scm /opt/cloudera
+
+
+
+# 所有节点创建大数据软件的安装目录，用户和用户组权限
+mkdir -p /opt/cloudera/parcels
+chown -R cloudera-scm:cloudera-scm /opt/cloudera
+
+
+# 启动server
+cd /opt/cloudera-manager/cm-5.16.1/etc/init.d/
+./cloudera-scm-server start
+# 查看日志
+cd /opt/cloudera-manager/cm-5.16.1/log/cloudera-scm-server
+tail -F cloudera-scm-server.log
+
+
+# 启动agent
+cd /opt/cloudera-manager/cm-5.16.1/etc/init.d/
+./cloudera-scm-agent start
+
+
+
+# 打开浏览器 http://192.168.130.126:7180
+进行相应操作
+
+```
+
+
+
+
+
 
 
 
