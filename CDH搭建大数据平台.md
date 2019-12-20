@@ -2,6 +2,348 @@
 
 # CDH 搭建大数据平台
 
+## 大数据平台简介
+
+### 大数据关键技术
+
+1.数据采集技术
+
+利用ETL工具将分布的、异构数据源中的数据如关系数据、平面数据文件等，抽取到临时中间层后进行清洗、转换、集成，最后加载到数据仓库或数据集市中，成为联机分析处理、数据挖掘的基础；或者也可以把实时采集的数据作为流计算系统的输入，进行实时处理分析
+
+2.数据存储和管理
+
+利用分布式文件系统、数据仓库、关系数据库、NoSQL数据库、云数据库等，实现对结构化、半结构化和非结构化海量数据的存储和管理
+
+3.数据处理与分析
+
+利用分布式并行编程模型和计算框架，结合机器学习和数据挖掘算法，实现对海量数据的处理和分析；对分析结果进行可视化呈现，帮助人们更好地理解数据、分析数据
+
+
+
+### 大数据计算模式及其代表产品
+
+| 大数据计算模式 | 解决问题                       | 代表产品                                                     |
+| -------------- | ------------------------------ | ------------------------------------------------------------ |
+| 批处理计算     | 针对大规模数据的批量处理       | MapReduce(磁盘)**、**Spark（内存）**等                       |
+| 流计算         | 针对流数据的实时计算           | Storm、S4、**Flume、Streams**、Puma、DStream、银河流数据处理平台等 |
+| 图计算         | 针对大规模图结构数据的处理     | Pregel、GraphX、Hama、GoldenOrb等                            |
+| 查询分析计算   | 大规模数据的存储管理和查询分析 | Dremel、Hive、Cassandra、Impala等                            |
+
+Hadoop生态系统
+
+- Hadoop简介
+
+  –Hadoop是Apache软件基金会旗下的一个**开源分布式计算平台**，为用户提供了系统底层细节透明的**分布式基础架构**
+
+  –Hadoop是基于**Java语言**开发的，具有很好的跨平台特性，并且可以部署在廉价的计算机集群中
+
+  –Hadoop的核心是分布式文件系统**HDFS（Hadoop Distributed File System）和MapReduce**
+
+  –Hadoop被公认为行业大数据标准开源软件，在分布式环境下提供了海量数据的处理能力
+
+  –几乎所有主流厂商都围绕Hadoop提供开发工具、开源软件、商业化工具和技术服务，如谷歌、雅虎、微软、思科、淘宝等，都支持Hadoop
+
+  
+
+- Hadoop版本演变
+
+  <插入图片1>
+
+- Hadoop项目结构
+
+| **组件**  | **功能**                                                     |
+| --------- | ------------------------------------------------------------ |
+| HDFS      | 分布式文件系统                                               |
+| MapReduce | 分布式并行编程模型                                           |
+| YARN      | 资源管理和调度器                                             |
+| Tez       | 运行在YARN之上的下一代Hadoop查询处理框架                     |
+| Hive      | Hadoop上的数据仓库                                           |
+| HBase     | Hadoop上的非关系型的分布式数据库                             |
+| Pig       | 一个基于Hadoop的大规模数据分析平台，提供类似SQL的查询语言Pig Latin |
+| Sqoop     | 用于在Hadoop与传统数据库之间进行数据传递                     |
+| Oozie     | Hadoop上的工作流管理系统                                     |
+| Zookeeper | 提供分布式协调一致性服务，存储配置信息                       |
+| Storm     | 流计算框架                                                   |
+| Flume     | 一个高可用的，高可靠的，分布式的海量日志采集、聚合和传输的系统 |
+| Ambari    | Hadoop快速部署工具，支持Apache Hadoop集群的供应、管理和监控  |
+| Kafka     | 一种高吞吐量的分布式发布订阅消息系统，可以处理消费者规模的网站中的所有动作流数据 |
+| Spark     | 类似于Hadoop  MapReduce的通用并行框架                        |
+
+<插入图片2>
+
+<插入图片3>
+
+### 分布式文件系统
+
+- 简介
+
+分布式文件系统在物理结构上是由计算机集群中的多个节点构成的，这些节点分为两类，一类叫“主节点”(Master Node)或者称为“名称结点”(NameNode)，另一类叫“从节点”（Slave Node）或者称为“数据节点”(DataNode)。HDFS默认一个块64MB（Hadoop V2块大小128M），一个文件被分成多个块，以块作为存储单位。
+
+- 整体架构
+
+  <插入图片4>
+
+  <插入图片5>
+
+- 名称节点
+
+  1.功能
+
+名称节点记录了每个文件中各个块所在的数据节点的位置信息和负责管理分布式文件系统的命名空间（Namespace）
+
+​      2.数据结构
+
+它保存了两个核心的数据结构，即FsImage（镜像文件）和EditLog（编辑日志）； FsImage用于维护文件系统树以及文件树中所有的文件和文件夹的元数据；操作日志文件EditLog中记录了所有针对文件的创建、删除、重命名等操作
+
+​     <插入图片6>
+
+- 数据节点
+
+数据节点是分布式文件系统HDFS的工作节点，负责数据的存储和读取，会根据客户端或者是名称节点的调度来进行数据的存储和检索，并且向名称节点定期发送自己所存储的块的列表
+
+- 第二名称节点
+
+  1.功能
+
+  它是HDFS架构中的一个组成部分，它是用来保存名称节点中对HDFS 元数据信息的备份，并减少名称节点重启的时间。SecondaryNameNode一般是单独运行在一台机器上
+
+  2.工作机制
+
+  ​     <插入图片7>
+
+### 分布式数据库HBase
+
+- 简介
+
+HBase是一个高可靠、高性能、面向列、可伸缩的分布式数据库，是谷歌BigTable的开源实现，主要用来存储非结构化和半结构化的松散数据。HBase的目标是处理非常庞大的表，可以通过水平扩展的方式，利用廉价计算机集群处理由超过10亿行数据和数百万列元素组成的数据表 
+
+- Hadoop生态系统中HBase与其他部分的关系  
+
+  ​    <插入图片8>
+
+  
+
+- HBase与传统关系数据库的对比
+
+  1.数据类型：关系数据库采用关系模型，具有丰富的数据类型和存储方式，HBase则采用了更加简单的数据模型，它把数据存储为未经解释的**字符串**
+
+  2.数据操作：关系数据库中包含了丰富的操作，其中会涉及复杂的多表连接。HBase操作则**不存在复杂的表与表之间的关系**，只有简单的插入、查询、删除、清空等，因为HBase在设计上就避免了复杂的表和表之间的关系
+
+  3.存储模式：关系数据库是基于行模式存储的。HBase是基于**列存储**的，每个列族都由几个文件保存，不同列族的文件是分离的
+
+  4.数据索引：关系数据库通常可以针对不同列构建复杂的多个索引，以提高数据访问性能。HBase只有一个**索引——行键**，通过巧妙的设计，HBase中的所有访问方法，或者通过行键访问，或者通过行键扫描，从而使得整个系统不会慢下来
+
+  5.数据维护：在关系数据库中，更新操作会用最新的当前值去替换记录中原来的旧值，旧值被覆盖后就不会存在。而在HBase中执行更新操作时，并不会删除数据旧的版本，而是**生成一个新的版本**，旧有的版本仍然保留
+
+  6.可伸缩性：关系数据库很难实现横向扩展，纵向扩展的空间也比较有限。相反，HBase和BigTable这些分布式数据库就是为了实现灵活的水平扩展而开发的，能够轻易地通过在集群中增加或者减少硬件数量来实现性能的伸缩
+
+- HBase表结构
+
+  1.简介
+
+  HBase是一个稀疏、多维度、排序的映射表，每个值是一个未经解释的字符串，没有数据类型；用户在表中存储数据，每一行都有一个可排序的行键和任意多的列；表在水平方向由一个或者多个列族组成，一个列族中可以包含任意多个列，同一个列族里面的数据存储在一起；列族支持动态扩展，可以很轻松地添加一个列族或列，无需预先定义列的数量以及类型，所有列均以字符串形式存储，用户需要自行进行数据类型转换
+
+​     2.元素
+
+​     <插入图片9>
+
+​    3.范例
+
+​     <插入图片10>
+
+- HBase系统架构
+
+    <插入图片11>
+
+  1.客户端
+
+  包含访问HBase的接口，同时在缓存中维护着已经访问过的Region位置信息，用来加快后续数据访问过程
+
+  2.Zookeeper
+
+  帮助选举出一个Master作为集群的总管，并保证在任何时刻总有唯一一个Master在运行，这就避免了Master的“单点失效”问题；也是一个集群管理工具，被大量用于分布式计算，提供配置维护、域名服务、分布式同步、组服务等
+
+  3.主服务器Master（主要负责表和Region的管理工作）
+
+  –管理用户对表的增加、删除、修改、查询等操作
+
+  –实现不同Region服务器之间的负载均衡
+
+  –在Region分裂或合并后，负责重新调整Region的分布
+
+  –对发生故障失效的Region服务器上的Region进行迁移
+
+  4.Region服务器
+
+  是HBase中最核心的模块，负责维护分配给自己的Region，并响应用户的读写请求
+
+  
+
+  ### Hive分布式数据仓库
+
+- 简介
+
+  –Hive 作为Hadoop 的数据仓库处理工具，它所有的数据都存储在Hadoop 兼容的文件系统中
+
+  –Hive是一个SQL解析引擎,它将SQL语句转译成MapReduce作业并在Hadoop上执行
+
+  –Hive表是HDFS的一个文件目录，一个表名对应一个目录名，如果有分区表的话，则分区值对应子目录名
+
+  –Hive 在加载数据过程中不会对数据进行任何的修改，只是将数据移动到HDFS 中Hive 设定的目录下，因此，Hive 不支持对数据的改写和添加，所有的数据都是在加载的时候确定的
+
+- 设计特点
+
+  –支持索引，加快数据查询
+
+  –不同的存储类型，例如，纯文本文件、HBase 中的文件
+
+  –将元数据保存在关系数据库中，减少了在查询中执行语义检查时间
+
+  –可以直接使用存储在Hadoop 文件系统中的数据
+
+  –内置大量用户函数UDF 来操作时间、字符串和其他的数据挖掘工具，支持用户扩展UDF 函数来完成内置函数无法实现的操作
+
+  –类SQL 的查询方式，将SQL 查询转换为MapReduce 的job 在Hadoop集群上执行
+
+  –编码跟Hadoop同样使用UTF-8字符集
+
+- Hive体系结构  
+
+   <插入图片12>
+
+  –用户接口主要有三个：CLI，Client 和  WUI。其中最常用的是CLI，Cli启动的时候，会同时启动一个Hive副本。Client是Hive的客户端，用户连接至Hive  Server。在启动 Client模式的时候，需要指出Hive Server所在节点，并且在该节点启动Hive Server。  WUI是通过浏览器访问Hive
+  –Hive将元数据存储在数据库中，如mysql、derby。Hive中的元数据包括表的名字，表的列和分区及其属性，表的属性（是否为外部表等），表的数据所在目录等
+  –解释器、编译器、优化器完成HQL查询语句从词法分析、语法分析、编译、优化以及查询计划的生成。生成的查询计划存储在HDFS中，并在随后有MapReduce调用执行
+  –Hive的数据文件存储在HDFS中，大部分的查询、计算由MapReduce完成（包含*的查询，比如select * from tbl不会生成MapRedcue任务）
+
+  
+
+- Hive数据模型
+
+   Hive中包含以下数据模型：Table内部表，External Table外部表，Partition分区，Bucket桶。Hive默认可以直接加载文本文件，还支持sequence file 、RCFile
+
+  <插入图片13>
+
+  
+
+  –Hive数据库
+
+  类似传统数据库的DataBase，在第三方数据库里实际是一张表。简单示例命令行 hive > create database test_database;
+
+  
+
+  –内部表
+
+  Hive的内部表与数据库中的Table在概念上是类似。每一个Table在Hive中都有一个相应的目录存储数据。例如一个表pvs，它在HDFS中的路径为/wh/pvs，其中wh是在hive-site.xml中由${hive.metastore.warehouse.dir} 指定的数据仓库的目录，所有的Table数据（不包括External Table）都保存在这个目录中。删除表时，元数据与数据都会被删除
+
+    内部表简单示例：
+    创建数据文件：test_inner_table.txt
+
+    创建表：create table test_inner_table (key string)
+    加载数据：LOAD DATA LOCAL INPATH ‘filepath’ INTO TABLE test_inner_table
+    查看数据：select * from test_inner_table; select count(*) from test_inner_table
+    删除表：drop table test_inner_table
+
+   
+
+  –外部表
+
+  外部表指向已经在HDFS中存在的数据，可以创建Partition。它和内部表在元数据的组织上是相同的，而实际数据的存储则有较大的差异。内部表的创建过程和数据加载过程这两个过程可以分别独立完成，也可以在同一个语句中完成，在加载数据的过程中，实际数据会被移动到数据仓库目录中；之后对数据对访问将会直接在数据仓库目录中完成。删除表时，表中的数据和元数据将会被同时删除。而外部表只有一个过程，加载数据和创建表同时完成（CREATE EXTERNAL TABLE ……LOCATION），实际数据是存储在LOCATION后面指定的 HDFS  路径中，并不会移动到数据仓库目录中。当删除一个External Table时，仅删除该链接
+    外部表简单示例：
+    创建数据文件：test_external_table.txt
+    创建表：create external table test_external_table (key string)
+    加载数据：LOAD DATA INPATH ‘filepath’ INTO TABLE test_inner_table
+    查看数据：select * from test_external_table; •select count(*) from test_external_table
+    删除表：drop table test_external_table
+
+   
+
+  –分区
+
+  Partition对应于数据库中的Partition列的密集索引，但是Hive中Partition的组织方式和数据库中的很不相同。在Hive中，表中的一个Partition对应于表下的一个目录，所有的Partition的数据都存储在对应的目录中。
+
+  例如pvs表中包含ds和city两个Partition，则对应于ds = 20090801, ctry = US 的HDFS子目录为/wh/pvs/ds=20090801/ctry=US；对应于 ds =  20090801, ctry = CA 的HDFS子目录为/wh/pvs/ds=20090801/ctry=CA
+
+    分区表简单示例：
+    创建数据文件：test_partition_table.txt
+    创建表：create table test_partition_table (key string) partitioned by (dt string)
+    加载数据：LOAD DATA INPATH ‘filepath’ INTO TABLE test_partition_table partition (dt=‘2006’)
+    查看数据：select * from test_partition_table; select count(*) from test_partition_table
+    删除表：drop table test_partition_table
+
+  
+
+  –桶
+
+     Buckets是将表的列通过Hash算法进一步分解成不同的文件存储。它对指定列计算hash，根据hash值切分数据，目的是为了并行，每一个Bucket对应一个文件。分区是粗粒度的划分，桶是细粒度的划分，这样做为了可以让查询发生在小范围的数据上以提高效率。适合进行表连接查询、适合用于采样分析。
+
+  例如将user列分散至32个bucket，首先对user列的值计算hash，对应hash值为0的HDFS目录为/wh/pvs/ds=20090801/ctry=US/part-00000；hash值为20的HDFS目录为/wh/pvs/ds=20090801/ctry=US/part-00020。
+
+    桶的简单示例：
+    创建数据文件：test_bucket_table.txt
+    创建表：create table test_bucket_table (key string) clustered by (key) into 20 buckets
+    加载数据：LOAD DATA INPATH ‘filepath’ INTO TABLE test_bucket_table
+    查看数据：select * from test_bucket_table; set hive.enforce.bucketing = true
+
+  
+
+  –Hive的视图
+
+    视图与传统数据库的视图类似。视图是只读的，它基于的基本表，如果改变，数据增加不会影响视图的呈现；如果删除，会出现问题。•如果不指定视图的列，会根据select语句后的生成
+    示例：create view test_view as select * from tes
+
+  
+
+- Hive应用的场景
+
+  适用场景：海量数据的存储处理、数据挖掘、海量数据的离线分析
+
+  不适用场景：复杂的机器学习算法、复杂的科学计算、联机交互式实时查询
+
+  
+
+  
+
+  ### Spark生态系统
+
+- 简介
+
+  Spark的生态系统主要包含了Spark Core（内存计算）、Spark SQL（交互式查询）、Spark Streaming（流处理）、MLLib和GraphX （数据挖掘）等组件
+
+  –Spark Core：包含Spark的基本功能；尤其是定义RDD的API、操作以及这两者上的动作。其他Spark的库都是构建在RDD和Spark Core之上的
+
+  –Spark SQL：提供通过Apache Hive的SQL变体Hive查询语言（HiveQL）与Spark进行交互的API。每个数据库表被当做一个RDD，Spark SQL查询被转换为Spark操作
+
+  –Spark Streaming：对实时数据流进行处理和控制。Spark Streaming允许程序能够像普通RDD一样处理实时数据
+
+  –MLlib：一个常用机器学习算法库，算法被实现为对RDD的Spark操作。这个库包含可扩展的学习算法，比如分类、回归等需要对大量数据集进行迭代的操作。
+
+  –GraphX：控制图、并行图操作和计算的一组算法和工具的集合。GraphX扩展了RDD API，包含控制图、创建子图、访问路径上所有顶点的操作
+
+  | **应用场景**             | **时间跨度** | **其他框架**           | **Spark生态系统中的组件** |
+  | ------------------------ | ------------ | --------------------- | ------------------------- |
+  | 复杂的批量数据处理        | 小时级        | MapReduce、Hive        | Spark                     |
+  | 基于历史数据的交互式查询  | 分钟级、秒级   | Impala、Dremel、Drill  | Spark SQL                 |
+  | 基于实时数据流的数据处理  | 毫秒、秒级     | Storm、S4              | Spark Streaming           |
+  | 基于历史数据的数据挖掘    | -             | Mahout                 | MLlib                     |
+  | 图结构数据的处理         | -             | Pregel、Hama           | GraphX                    |
+
+- Spark运行架构图
+
+  Spark运行架构包括集群资源管理器（Cluster Manager）、运行作业任务的工作节点（Worker Node）、每个应用的任务控制节点（Driver）和每个工作节点上负责具体任务的执行进程（Executor），资源管理器可以自带或Mesos或YARN
+
+  <插入图片14>
+
+  –Cluster Manager：在standalone模式中即为Master主节点，控制整个集群，监控worker。在YARN模式中为资源管理器
+
+  –Worker节点：从节点，负责控制计算节点，启动Executor或者Driver
+
+  –Driver： 运行Application 的main()函数
+
+  –Executor：执行器，是为某个Application运行在worker node上的一个进程
+
+---
+
 ## CDH 简介
 
 CDH 全称 Cloudera’s Distribution Including Apache Hadoop，是 Hadoop 众多发行版本（分支）中的一种，基于稳定版本的 Apache Hadoop 构建，由 Cloudera 维护（免费）。
@@ -35,9 +377,9 @@ CDH 体系架构：
 
 Hadoop 分布式文件系统在物理结构上是由计算机集群中的多个节点构成的，这些节点分为两类，一类叫主节点（Master Node)，另一类叫从节点（Slave Node），Master Node 存储元数据（保存在内存中），Slave Node 存储文件块。
 
-这里以 4 个系统节点搭建 Hadoop 大数据分布式平台，一个 MAster Node，三个 Slave Node。
+这里以 4 个系统节点搭建 Hadoop 大数据分布式平台，一个 Master Node，三个 Slave Node。
 
-CDH5.x 的部署和 CDH6.x 的部署不一样，这里以 CDH6.x 部署为例子
+CDH5.x 的部署和 CDH6.x 的部署不一样
 
 
 离线安装需要准备的安装包如下图所示： 
@@ -61,7 +403,7 @@ CDH5.x 的部署和 CDH6.x 的部署不一样，这里以 CDH6.x 部署为例子
 
 ### 基础环境配置
 
-#### 1.修改主机名并配置 hosts
+#### 1. 修改主机名并配置 hosts
 
 ```shell
 # 输入 hostname 命令可以查看当前系统的主机名，CentOS 系统的默认主机名为 localhost.localdomain
@@ -89,7 +431,7 @@ ping [主机名]
 
 ---
 
-#### 2.关闭防火墙（基础阶段）
+#### 2. 关闭防火墙（基础阶段）
 
 集群是内网搭建的，对外还有一个防火墙，由它来访问内网集群。如果内网内部节点开启防火墙后，就需要在内部节点把通讯需要的端口一个个打开，如果节点数量大的话，是个很繁杂的工程。
 
@@ -134,11 +476,11 @@ service firewalld restart
 
 ---
 
-#### 3.关闭 SELinux 模块
+#### 3. 关闭 SELinux 模块
 
 安全增强型 Linux（Security-Enhanced Linux）简称 SELinux，它是一个 Linux 内核模块，也是 Linux 的一个安全子系统。SELinux 主要作用就是最大限度地减小系统中服务进程可访问的资源（最小权限原则）。
 
-第一步，先查看 SELinux 模块状态
+第一步，所有节点先查看 SELinux 模块状态
 
 ```shell
 # 检查 SELinux 状态
@@ -165,7 +507,7 @@ setenforce 0
 
 ---
 
-#### 4.启用 NTP 服务
+#### 4. 启用 NTP 服务
 
 NTP 全名 Network TimeProtocol，即网络时间协议，是由 RFC 1305 定义的时间同步协议，用来在分布式时间服务器和客户端之间进行时间同步。它是把计算机的时钟同步到世界协调时 UTC，其精度在局域网内可达 0.1ms。
 
@@ -212,7 +554,7 @@ server 3.asia.pool.ntp.org
 # 当外部时间不可用时，可使用本地硬件时间
 server 127.127.1.0 iburst local clock
 # 设置允许连接网段
-restrict x.x.x.x mask 255.255.255.0 nomodify
+restrict 192.168.130.0 mask 255.255.255.0 nomodify
 -----------------------------------------------
 ```
 
@@ -261,7 +603,7 @@ crontab -e
 
 ---
 
-#### 5.设置 ssh 免密码访问
+#### 5. 设置 ssh 免密码访问
 
 在所有节点上执行下面代码生成生成私钥和公钥
 ```shell
@@ -302,11 +644,25 @@ scp /root/.ssh/known_hosts root@[slave主机名]:/root/.ssh/
 
 ---
 
-#### 6.大页面
+#### 6. 禁用 Transparent HugePages
 
-禁用透明页(所有节点）
+在所有节点禁用透明大页面（Transparent HugePages）
+
+> 透明大页面：内存是由块管理，即众所周知的页面。超大页面是 2MB 和 1GB 大小的内存块。2MB 使用的页表可管理多 GB 内存，而 1GB 页是 TB 内存的最佳选择。红帽企业版 Linux 6 开始就采用了超大页面管理。
+>
+> 超大页面必须在引导时分配。它们也很难手动管理，且经常需要更改代码以便可以有效使用。因此红帽企业版 Linux 也部署了透明超大页面 (THP)。THP 是一个提取层，可自动创建、管理和使用超大页面的大多数方面。THP可以改进系统的性能。
+
+透明 HugePages 可能会在运行时导致内存分配延迟。它与Hadoop工作负载的交互很差，并且会严重降低性能。
+
 
 ```shell
+# 检查是否已启用 Transparent HugePages 内存
+cat /sys/kernel/mm/transparent_hugepage/enabled
+
+# 判断透明大页是否被禁用；返回 0 则表示已禁用
+grep -i HugePages_Total /proc/meminfo
+
+# 
 echo never > /sys/kernel/mm/transparent_hugepage/defrag
 echo never > /sys/kernel/mm/transparent_hugepage/enabled
 ```
@@ -316,7 +672,7 @@ echo never > /sys/kernel/mm/transparent_hugepage/enabled
 
 ### JDK 与 数据库的安装
 
-#### 1.安装 JDK
+#### 1. 安装 JDK
 
 使用 Oracle 的 jdk，例如使用`jdk-8u181-linux-x64`版本。
 
@@ -329,16 +685,16 @@ rpm -qa|grep jdk
 rpm -e --nodeps [openjdk文件名]
 ```
 
-- yum 安装
+###### 1.1 yum 安装
 
-```
+直接使用 yum 命令安装即可（对网络有要求）
+```shell
 yum install -y oracle-j2sdk1.8-1.8.0+update181-1.x86_64.rpm
-
 ```
 
+###### 1.2 离线安装
 
-
-- 离线安装：将已下载好的 jdk 软件包解压到`/usr/java`，CDH 默认加载此路径。
+离线安装：将已下载好的 jdk 软件包解压到`/usr/java`，CDH 默认加载此路径。
 
 ```shell
 # 创建 java目录
@@ -354,7 +710,7 @@ chown -R root:root /usr/java
 - 设置软链接，方便升级替换（可不做，配置环境变量时写原先的）
 
 ```shell
-ln -s /usr/java/jdk1.8.0_181/ /usr/java/current
+ln -s /usr/java/jdk1.8.0_181/ /usr/java/default
 ```
 
 - 配置环境变量
@@ -406,13 +762,9 @@ java -verion
 scp /etc/profile [主机名]:/etc/
 ```
 
-
-
-
-
 ---
 
-#### 2.安装 Mysql
+#### 2. 安装 Mysql
 
 Mysql 用于 master 节点元数据的存储
 
@@ -437,17 +789,17 @@ mv /usr/local/mysql-5.7.28-el7-x86_64/ /usr/local/mysql
 
 - 更改所属用户和用户组（需要先添加用户组和用户）
 ```shell
-# 创建数据存放目录 /usr/local/mysql/data
+# 创建数据存放目录 /usr/local/mysql/data，Innodb 日志存放目录 arch，临时文件目录 temp
 cd /usr/local/mysql
 mkdir data arch tmp
 
 # 添加用户组 mysql 和用户 mysql
 groupadd mysql
-useradd -r -g mysql -G root mysql    
+useradd -r -g mysql -G root -d /usr/local/mysql mysql    
 
-# 更改目录及目录下文件的用户和用户组
+# 更改目录及目录下文件的用户和用户组、赋权
 chown -R mysql:mysql /usr/local/mysql/
-chown -R mysql:mysql /usr/local/mysql/data
+chmod -R 755 /usr/local/mysql
 ```
 
 - 编辑配置文件 my.cnf，添加配置如下：
@@ -455,74 +807,150 @@ chown -R mysql:mysql /usr/local/mysql/data
 # 创建并编辑配置文件
 vi /etc/my.cnf 
 
-# 追加写入
+# 覆盖写入
 ------------------------------------------------------------
 [client]
-port = 3306
-socket = /usr/local/mysql/data/mysql.sock
-default-character-set = utf8mb4
+port            = 3306
+socket          = /usr/local/mysql/data/mysql.sock
+default-character-set=utf8mb4
 
 [mysqld]
-port = 3306
-socket = /usr/local/mysql/data/mysql.sock
+port            = 3306
+socket          = /usr/local/mysql/data/mysql.sock
 
-
+skip-slave-start
+skip-external-locking
 key_buffer_size = 256M
 sort_buffer_size = 2M
 read_buffer_size = 2M
 read_rnd_buffer_size = 4M
 query_cache_size= 32M
 max_allowed_packet = 16M
-myisam_sort_buffer_size = 128M
-tmp_table_size = 32M
-thread_cache_size = 64
+myisam_sort_buffer_size=128M
+tmp_table_size=32M
 
-# network & connection
 table_open_cache = 512
-
+thread_cache_size = 8
 wait_timeout = 86400
 interactive_timeout = 86400
 max_connections = 600
 
-basedir = /usr/local/mysql
-datadir = /usr/local/mysql/data
+# Try number of CPU's*2 for thread_concurrency
+#thread_concurrency = 32 
 
 #isolation level and default engine 
 default-storage-engine = INNODB
 transaction-isolation = READ-COMMITTED
 
+server-id = 1739
+basedir = /usr/local/mysql
+datadir = /usr/local/mysql/data
+pid-file = /usr/local/mysql/data/hostname.pid
+
+#open performance schema
+log-warnings
+sysdate-is-now
+
+binlog_format = ROW
+log_bin_trust_function_creators=1
+log-error = /usr/local/mysql/data/hostname.err
+log-bin = /usr/local/mysql/arch/mysql-bin
+expire_logs_days = 7
+
+innodb_write_io_threads=16
+
+relay-log = /usr/local/mysql/relay_log/relay-log
+relay-log-index = /usr/local/mysql/relay_log/relay-log.index
+relay_log_info_file= /usr/local/mysql/relay_log/relay-log.info
+
+log_slave_updates=1
+gtid_mode=OFF
+enforce_gtid_consistency=OFF
+
+# slave
+slave-parallel-type=LOGICAL_CLOCK
+slave-parallel-workers=4
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+relay_log_recovery=ON
+
+#other logs
+#general_log =1
+#general_log_file  = /usr/local/mysql/data/general_log.err
+#slow_query_log=1
+#slow_query_log_file=/usr/local/mysql/data/slow_log.err
+
+#for replication slave
+sync_binlog = 500
+
+#for innodb options 
+innodb_data_home_dir = /usr/local/mysql/data/
+innodb_data_file_path = ibdata1:1G;ibdata2:1G:autoextend
+
+innodb_log_group_home_dir = /usr/local/mysql/arch
+innodb_log_files_in_group = 4
+innodb_log_file_size = 1G
+innodb_log_buffer_size = 200M
+
+#根据生产需要，调整pool size 
+innodb_buffer_pool_size = 2G
+#innodb_additional_mem_pool_size = 50M #deprecated in 5.6
+tmpdir = /usr/local/mysql/tmp
+
+innodb_lock_wait_timeout = 1000
+#innodb_thread_concurrency = 0
+innodb_flush_log_at_trx_commit = 2
+
+innodb_locks_unsafe_for_binlog=1
+
+#innodb io features: add for mysql5.5.8
+performance_schema
+innodb_read_io_threads=4
+innodb-write-io-threads=4
+innodb-io-capacity=200
+#purge threads change default(0) to 1 for purge
+innodb_purge_threads=1
+innodb_use_native_aio=on
+
+#case-sensitive file names and separate tablespace
 innodb_file_per_table = 1
-innodb_flush_log_at_trx_commit  = 2
-innodb_log_buffer_size = 64M
-innodb_buffer_pool_size = 4G
-innodb_thread_concurrency = 8
-innodb_flush_method = O_DIRECT
-innodb_log_file_size = 512M
+lower_case_table_names=1
+
+[mysqldump]
+quick
+max_allowed_packet = 128M
 
 [mysql]
-auto-rehash
+no-auto-rehash
 default-character-set=utf8mb4
 
-[mysqld_safe]
-log-error=/var/log/mysqld.log
-pid-file=/var/run/mysqld/mysqld.pid
-sql_mode=STRICT_ALL_TABLES
+[mysqlhotcopy]
+interactive-timeout
+
+[myisamchk]
+key_buffer_size = 256M
+sort_buffer_size = 256M
+read_buffer = 2M
+write_buffer = 2M
 ------------------------------------------------------------
 
-chown mysql:mysql /etc/mysql
+# 更改用户和用户组、赋权
+chown mysql:mysql /etc/my.cnf
+chmod 640 /etc/my.cnf
 ```
 
 - 初始化MySQL
 ```shell
-# 更改安装文件夹 mysql 的权限，进入 mysql 目录，并初始化 mysql
-chmod -R 755 /usr/local/mysql/
+# 进入 mysql 目录
 cd /usr/local/mysql/
-bin/mysqld --initialize --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data
-
-# 需要链接库文件 libaio（系统没安装时会报错并且需要安装）
-                                        ↓
+# 初始化 mysql，需要链接库文件 libaio（系统没安装时会报错并且需要安装）
+bin/mysqld --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data --initialize
+                               ↓
 # 注意会生成 root@localhost 登录 mysql 数据库的临时密码，密码是随机的（每个人生成的临时密码不一样）
 [Note] A temporary password is generated for root@localhost: g7symwg+tJ<N
+
+# 可在 mysql/data 目录下 hostname.err 文件中查看
+cat /usr/local/mysql/data/hostname.err | grep password
 ```
 
 - 设置环境变量
@@ -547,6 +975,8 @@ chown mysql:mysql /etc/rc.d/init.d/mysqld
 # 赋予可执行权限
 chmod +x /etc/rc.d/init.d/mysqld
 
+#删除服务
+chkconfig --del mysqld
 # 添加服务
 chkconfig --add mysqld
 chkconfig --level 345 mysqld on
@@ -571,11 +1001,11 @@ service mysqld status
 mysql -uroot -p'初始密码'
 
 # 修改密码，注意不能使用"$"等特殊符号
-mysql> set password=password('cdh123456');
+mysql> set password=password('cdh123');
 mysql> flush privileges;
 
 # 远程登陆权限
-mysql> grant all privileges on *.*  to  'root'@'%'  identified by 'cdh123456'  with grant option;
+mysql> grant all privileges on *.*  to  'root'@'%'  identified by 'cdh123'  with grant option;
 mysql> flush privileges;
 mysql> exit
 
@@ -587,7 +1017,7 @@ service mysqld restart
 
 ---
 
-#### 3.在 Mysql 创建 CDH 数据库
+#### 3. 在 Mysql 创建 CDH 数据库
 
 根据所需要安装的服务参照下表创建对应的数据库以及数据库用户，数据库必须使用utf8编码，创建数据库时要记录好用户名及对应密码：
 
@@ -607,39 +1037,26 @@ service mysqld restart
 ```shell
 mysql -u root -p
 
-# 先创建4个数据库及对应用户，操作步骤如下
+# 先创建 2 个数据库及对应用户，操作步骤如下
 mysql> CREATE DATABASE scm DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 mysql> CREATE DATABASE amon DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-mysql> CREATE DATABASE rman DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-mysql> CREATE DATABASE metastore DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 
-# 然后为数据库授权设置密码并FLUSH
-mysql> GRANT ALL PRIVILEGES ON scm.* TO 'scm'@'%' IDENTIFIED BY '密码';
-mysql> GRANT ALL PRIVILEGES ON amon.* TO 'amon'@'%' IDENTIFIED BY '密码';
-mysql> GRANT ALL PRIVILEGES ON rman.* TO 'rman'@'%' IDENTIFIED BY '密码';
-mysql> GRANT ALL PRIVILEGES ON metastore.* TO 'hive'@'%' IDENTIFIED BY '密码';
+# 然后为数据库授权设置密码并 FLUSH
+mysql> GRANT ALL PRIVILEGES ON scm.* TO 'scm'@'%' IDENTIFIED BY 'cdh123';
+mysql> GRANT ALL PRIVILEGES ON amon.* TO 'amon'@'%' IDENTIFIED BY 'cdh123';
 mysql> FLUSH PRIVILEGES;
 
 # 查看授权是否正确
 mysql> SHOW GRANTS FOR 'scm'@'%';
 mysql> SHOW GRANTS FOR 'amon'@'%';
-mysql> SHOW GRANTS FOR 'rman'@'%';
-mysql> SHOW GRANTS FOR 'hive'@'%';
 
-# 删除授权信息
+# 删除授权信息（发现授权错误的情况下）
 mysql> DROP USER 'scm'@'%';
 mysql> DROP USER 'amon'@'%';
-mysql> DROP USER 'rman'@'%';
-mysql> DROP USER 'hive'@'%';
-
-# 授权 root 用户在主节点拥有所有数据库的访问权限
-mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'master' IDENTIFIED BY '密码' WITH GRANT OPTION;
-mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '密码' WITH GRANT OPTION;
-mysql> FLUSH PRIVILEGES;
 ```
 
 
-#### 4.安装jdbc驱动
+#### 4. 安装jdbc驱动
 
 在所有节点部署 mysql jdbc jar 包
 
@@ -655,62 +1072,9 @@ cd /usr/share/java
 chmod 777 mysql-connector-java.jar
 ```
 
-#### 3.在 Mysql 创建 CDH 数据库
+### CM6.x 安装部署
 
-根据所需要安装的服务参照下表创建对应的数据库以及数据库用户，数据库必须使用utf8编码，创建数据库时要记录好用户名及对应密码：
-
-|服务名|数据库名|用户名|
-|----|----|----|
-|Cloudera Manager Server           |  scm       |   scm    |
-|Activity Monitor                  |  amon      |   amon   |
-|Reports Manager                   |  rman      |   rman   |
-|Hue                               |  hue       |   hue    |
-|Hive Metastore Server             |  metastore |   hive   |
-|Sentry Server                     |  sentry    |   sentry |
-|Cloudera Navigator Audit Server   |  nav       |   nav    |
-|Cloudera Navigator Metadata Server|  navms     |   navms  |
-
-
-
-```shell
-mysql -u root -p
-
-# 先创建4个数据库及对应用户，操作步骤如下
-mysql> CREATE DATABASE scm DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-mysql> CREATE DATABASE amon DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-mysql> CREATE DATABASE rman DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-mysql> CREATE DATABASE metastore DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-
-# 然后为数据库授权设置密码并FLUSH
-mysql> GRANT ALL PRIVILEGES ON scm.* TO 'scm'@'%' IDENTIFIED BY '密码';
-mysql> GRANT ALL PRIVILEGES ON amon.* TO 'amon'@'%' IDENTIFIED BY '密码';
-mysql> GRANT ALL PRIVILEGES ON rman.* TO 'rman'@'%' IDENTIFIED BY '密码';
-mysql> GRANT ALL PRIVILEGES ON metastore.* TO 'hive'@'%' IDENTIFIED BY '密码';
-mysql> FLUSH PRIVILEGES;
-
-# 查看授权是否正确
-mysql> SHOW GRANTS FOR 'scm'@'%';
-mysql> SHOW GRANTS FOR 'amon'@'%';
-mysql> SHOW GRANTS FOR 'rman'@'%';
-mysql> SHOW GRANTS FOR 'hive'@'%';
-
-# 删除授权信息
-mysql> DROP USER 'scm'@'%';
-mysql> DROP USER 'amon'@'%';
-mysql> DROP USER 'rman'@'%';
-mysql> DROP USER 'hive'@'%';
-
-# 授权 root 用户在主节点拥有所有数据库的访问权限
-mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'master' IDENTIFIED BY '密码' WITH GRANT OPTION;
-mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '密码' WITH GRANT OPTION;
-mysql> FLUSH PRIVILEGES;
-```
-
-
-
-### CM 安装部署
-
-#### 1.安装部署 CM Server & Agent
+#### 1. 离线安装部署 CM Server & Agent
 
 cm6.x 采用 rpm 包部署
 
@@ -783,38 +1147,80 @@ service cloudera-scm-agent start
 
 
 ```shell
-# 安装 http 服务
+# 安装 httpd 服务
 yum install -y httpd
 # 启动服务
 systemctl start httpd
-# 设置httpd服务开机自启
+# 设置 httpd 服务开机自启
 systemctl enable httpd.service 
 
 # 创建本地 parcel 源目录
 mkdir -p /var/www/html/cdh6_parcel
 
-# 将上述 parcel 目录移动到 /var/www/html目录下, 使得用户可以通过 HTTP 访问这些 rpm 包
+# 将上述 parcel 目录移动到 /var/www/html 目录下, 使得用户可以通过 HTTP 访问这些 rpm 包
 # 将 CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha1 重命为 CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
 cp CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel /var/www/html/cdh6_parcel/
 cp CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha1 /var/www/html/cdh6_parcel/CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha
 cp manifest.json /var/www/html/cdh6_parcel
 
-# 验证，浏览器中直接输入IP/cdh6_parcel可以直接访问/var/www/html/cdh6_parcel目录及其文件
+# 修改目录权限 
+chmod -R 755 /var/www/html/cdh6_parcel
+
+# 验证，浏览器中直接输入 IP/cdh6_parcel 可以直接访问 /var/www/html/cdh6_parcel目录及其文件
 # 检查端口是否监听
 netstat -lnpt | grep 7180
-
 ```
-
-
-
-
-
-
 ---
 
 
 
-#### 在线+离线
+#### 2. 在线+离线安装部署 CM Server & Agent
+
+###### 2.1 构建本地 yum 源（可不做）
+
+后续增加节点，节点自动通过 http 服务下载主节点的 yum 源
+
+- 主节点
+```shell
+# 安装 createrepo
+yum install -y createrepo
+
+# 创建 createrepo 目录
+cd /var/www/html/cm6
+createrepo .
+
+# 安装 http 服务
+yum install -y httpd
+# 启动服务
+systemctl start httpd
+# 设置 httpd 服务开机自启
+systemctl enable httpd.service 
+
+# 使用本地浏览器访问 IP/cm6 等。需要修改 cm6 等文件夹权限
+chmod -R 755 cm6
+```
+
+- 所有节点
+```shell
+# 修改配置文件
+cat >> /etc/yum.repos.d/cm6.repo << EOF
+[cm-local]
+name=cm6-local
+baseurl=http://cdh-port001/cm6
+enabled=1
+gpgcheck=0
+EOF
+
+# 查看 yum 源是否生效
+yum clean all
+yum repolist
+```
+
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/cdh_7.png)
+
+---
+
+###### 2.2 在线 + 离线安装部署 CM Server & Agent
 
 - 主节点
 ```shell
@@ -833,10 +1239,7 @@ yum -y install cloudera-manager-agent-6.3.1-1466458.el7.x86_64.rpm
 
 - 初始化 CM 的数据库
 ```shell
-/opt/cloudera/cm/schema/scm_prepare_database.sh mysql -hlocalhost scm scm
-
 /opt/cloudera/cm/schema/scm_prepare_database.sh mysql -hlocalhost -uroot -p'cdh123' scm scm
-
 ```
 
 - 所有节点修改 agent 配置
@@ -856,9 +1259,9 @@ parcel 源目录下文件如下所示：
 
 |Name|	Last Modified|	Size|
 |----|----|----|
-|CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel| 2019-10-11 08:45| 1.00GB|
-|CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha1| 2019-10-11 08:45|	40B|
-|manifest.json|	2019-10-11 08:45| 33.00KB|
+|`CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel`| 2019-10-11 08:45| 1.00GB|
+|`CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha1`| 2019-10-11 08:45|	40B|
+|`manifest.json`|	2019-10-11 08:45| 33.00KB|
 
 将相关文件拷贝到主节点目录`/opt/cloudera/parcel-repo/`
 
@@ -873,9 +1276,7 @@ systemctl enable httpd.service
 # 将相关文件拷贝到主节点/opt/cloudera/parcel-repo/
 # 将 CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha1 重命为 CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
 cp CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel /opt/cloudera/parcel-repo
-
 cp CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha1 /opt/cloudera/parcel-repo/CDH-6.3.1-1.cdh6.3.1.p0.1470567-el7.parcel.sha
-
 cp manifest.json /opt/cloudera/parcel-repo
 ```
 
@@ -889,105 +1290,86 @@ systemctl start cloudera-scm-agent
 systemctl start cloudera-scm-agent
 ```
 
-
-
-构建本地 yum 源
-
-后续增加节点，节点自动通过 http 服务下载主节点的 yum 源
-
-主节点
-```shell
-yum install -y createrepo
-
-cd /var/www/html/cm6
-createrepo .
-
-
-# 安装 http 服务
-yum install -y httpd
-# 启动服务
-systemctl start httpd
-# 设置 httpd 服务开机自启
-systemctl enable httpd.service 
-
-
-使用本地浏览器访问IP/cm6等。需要修改cm6等文件夹权限
-
-chmod -R 755 cm6ll
-
-
-```
-
-
-所有节点
-
-```shell
-cat >> /etc/yum.repos.d/cm6.repo << EOF
-[cm-local]
-name=cm6-local
-baseurl=http://cdh001/cm6
-enabled=1
-gpgcheck=0
-EOF
-```
-
-查看yum源是否生效
-
-```
-yum clean all
-yum repolist
-
-
-
-
-在所有节点安装cm6和其他依赖
-
-```shell
-yum install -y bind-utils libxslt cyrus-sasl-plain cyrus-sasl-gssapi portmap fuse-libs /lib/lsb/init-functions httpd mod_ssl openssl-devel python-psycopg2 MySQL-python fuse log4j
-
-```
-
-主节点
-```shell
-yum install -y cloudera-manager-daemons 
-yum install -y cloudera-manager-server 
-yum install -y cloudera-manager-server-db-2
-```
-
-
-执行CM数据库初始化脚本
-```shell
-/opt/cloudera/cm/schema/scm_prepare_database.sh mysql -h localhost -uroot -pcdh123 --scm-host localhost scm scm cdh123
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ---
+
+### CM5.x 安装部署
+
+#### 离线安装部署 CM Server & Agent
+
+```shell
+# 所有节点创建安装目录 /opt/cloudera-manager
+mkdir /opt/cloudera-manager
+# 解压 tar 包到安装目录
+tar -xzvf cloudera-manager-centos7-cm5.16.1_x86_64.tar.gz -C /opt/cloudera-manager/
+
+# 所有节点修改 agent 配置
+cd /opt/cloudera-manager/cm-5.16.1/etc/cloudera-scm-agent/
+vi config.ini
+  
+# 修改 server_host 参数
+-------------------------------------------
+server_host=cdh-port001
+-------------------------------------------
+
+# 主节点修改 server 配置
+cd /opt/cloudera-manager/cm-5.16.1/etc/cloudera-scm-server/
+vi db.properties
+# 修改
+---------------------------------------
+com.cloudera.cmf.db.type=mysql
+com.cloudera.cmf.db.host=localhost
+com.cloudera.cmf.db.name=scm
+com.cloudera.cmf.db.user=scm
+com.cloudera.cmf.db.password=cdh123
+com.cloudera.cmf.db.setupType=EXTERNAL
+----------------------------------------
+
+# 所有节点创建 cloudera-scm 用户，修改文件夹用户、用户组
+useradd --system --home=/opt/cloudera-manager/cm-5.16.1/run/cloudera-scm-server/ --no-create-home --comment "Cloudera SCM User" cloudera-scm
+chown -R cloudera-scm:cloudera-scm /opt/cloudera-manager
+
+
+# 配置 parcel 文件离线源（主节点）
+# 创建 parcel 离线源目录
+mkdir -p /opt/cloudera/parcel-repo/
+# 将相关文件拷贝到主节点/opt/cloudera/parcel-repo/
+cp CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel /opt/cloudera/parcel-repo/
+cp CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha1 /opt/cloudera/parcel-repo/CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
+cp manifest.json /opt/cloudera/parcel-repo/
+# 校验文件是否损坏
+/usr/bin/sha1sum CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel
+cat CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
+# 检查数值是否一致
+# 例如都为：703728dfa7690861ecd3a9bcd412b04ac8de7148
+
+
+# 所有节点创建大数据软件的安装目录
+mkdir -p /opt/cloudera/parcels
+# 修改用户、用户组及权限
+chown -R cloudera-scm:cloudera-scm /opt/cloudera
+chmod -R 755 /opt/cloudera
+
+
+# 主节点启动server
+cd /opt/cloudera-manager/cm-5.16.1/etc/init.d/
+./cloudera-scm-server start
+# 查看日志
+cd /opt/cloudera-manager/cm-5.16.1/log/cloudera-scm-server
+tail -F cloudera-scm-server.log
+
+# 所有节点启动agent
+cd /opt/cloudera-manager/cm-5.16.1/etc/init.d/
+./cloudera-scm-agent start
+```
+
+
+
+
+
 
 ### web 界面部署-CDH的安装
 
-http://[主机ip]:7180/cmf/login 访问CM
+打开浏览器 http://[主机ip]:7180/cmf/login
 
 登录默认账号 admin:admin
 
@@ -1033,92 +1415,5 @@ Command Details
 
 Summary
 ```
-
-
-
-
-
-cm5
-
-
-```shell
-
-mkdir /opt/cloudera-manager
-
-tar -xzvf cloudera-manager-centos7-cm5.16.1_x86_64.tar.gz -C /opt/cloudera-manager/
-
-# 所有节点修改 agent 配置
-cd /opt/cloudera-manager/cm-5.16.1/etc/cloudera-scm-agent/
-vi config.ini
--------------------------------------------
-server_host=cdh001
--------------------------------------------
-
-# 主节点修改 server 配置
-cd /opt/cloudera-manager/cm-5.16.1/etc/cloudera-scm-server/
-vi db.properties
----------------------------------------
-com.cloudera.cmf.db.type=mysql
-com.cloudera.cmf.db.host=localhost
-com.cloudera.cmf.db.name=cmf
-com.cloudera.cmf.db.user=cmf
-com.cloudera.cmf.db.password=cdh123
-com.cloudera.cmf.db.setupType=EXTERNAL
-----------------------------------------
-
-# 所有节点创建cloudera-scm用户，修改文件夹用户、用户组
-useradd --system --home=/opt/cloudera-manager/cm-5.16.1/run/cloudera-scm-server/ --no-create-home --shell=/bin/false cloudera-scm
-chown -R cloudera-scm:cloudera-scm /opt/cloudera-manager
-
-# parcel文件离线源（主节点）
-mkdir -p /opt/cloudera/parcel-repo/
-
-# 将相关文件拷贝到主节点/opt/cloudera/parcel-repo/
-cp CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel /opt/cloudera/parcel-repo/
-cp CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha1 /opt/cloudera/parcel-repo/CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
-cp manifest.json /opt/cloudera/parcel-repo/
-
-# 校验文件是否损坏
-/usr/bin/sha1sum CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel
-
-cat CDH-5.16.1-1.cdh5.16.1.p0.3-el7.parcel.sha
-
-# 检查数值是否一致
-703728dfa7690861ecd3a9bcd412b04ac8de7148
-
-# 修改权限
-chown -R cloudera-scm:cloudera-scm /opt/cloudera
-
-
-
-# 所有节点创建大数据软件的安装目录，用户和用户组权限
-mkdir -p /opt/cloudera/parcels
-chown -R cloudera-scm:cloudera-scm /opt/cloudera
-
-
-# 启动server
-cd /opt/cloudera-manager/cm-5.16.1/etc/init.d/
-./cloudera-scm-server start
-# 查看日志
-cd /opt/cloudera-manager/cm-5.16.1/log/cloudera-scm-server
-tail -F cloudera-scm-server.log
-
-
-# 启动agent
-cd /opt/cloudera-manager/cm-5.16.1/etc/init.d/
-./cloudera-scm-agent start
-
-
-
-# 打开浏览器 http://192.168.130.126:7180
-进行相应操作
-
-```
-
-
-
-
-
-
 
 
