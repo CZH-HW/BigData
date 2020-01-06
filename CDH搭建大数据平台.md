@@ -4,10 +4,24 @@
 
 ## 大数据简介
 
+**大数据**是一个体量特别大，数据类型特别大的数据集，并且这样的数据集无法用传统数据库工具对其内容进行抓取、管理和处理。
+
+1. **数据体量(volumes)大**：指代大型数据集，一般在10TB规模左右，但在实际应用中，很多企业用户把多个数据集放在一起，已经形成了PB级的数据量
+
+2. **数据类别(variety)大**：数据来自多种数据源，数据种类和格式日渐丰富，已突破了以前所限定的结构化数据范畴，囊括了半结构化和非结构化数据
+
+3. **数据处理速度(velocity)快**：在数据量非常庞大的情况下，也能够做到数据的实时处理
+
+4. **数据价值密度低**：数据量虽然十分庞大，有价值的数据却很少
+
+4. **数据真实性(veravity)高**：随着社交数据、企业内容、交易与应用数据等新数据源的兴起，传统数据源的局限被打破，企业愈发需要有效的信息之力已确保其真实性以及安全性。
+
+
+
 ### 大数据关键技术
 
 1. 数据采集技术
-利用 ETL（Extract Transform Load） 工具将分布的、异构数据源中的数据如关系数据、平面数据文件等，抽取到临时中间层后进行清洗、转换、集成，最后加载到数据仓库或数据集市中，成为联机分析处理、数据挖掘的基础；或者也可以把实时采集的数据作为流计算系统的输入，进行实时处理分析
+利用 ETL（Extract Transform Load） 工具将分布的、异构数据源中的数据如关系数据、平面数据文件等，抽取到临时中间层后进行清洗、转换、集成，最后加载到数据仓库或数据集市中，成为联机分析处理、数据挖掘的基础；或者也可以把实时采集的数据作为流计算系统的输入，进行实时处理分析。（常用的有 Kettle、Datastage、Powercenter 等）
 
 2. 数据存储和管理
 利用分布式文件系统、数据仓库、关系数据库、NoSQL数据库、云数据库等，实现对结构化、半结构化和非结构化海量数据的存储和管理
@@ -21,192 +35,209 @@
 
 ### 大数据计算模式及其代表产品
 
-| 大数据计算模式| 解决问题| 代表产品 |
+| 大数据计算模式| 解决问题| 代表（组件/框架/引擎） |
 | ----| ---- | ---- |
 | 批处理计算 | 针对大规模数据的批量处理  | MapReduce(磁盘)、Spark（内存）等 |
-| 流计算  | 针对流数据的实时计算  | Storm、S4、Flume、Streams、Puma、DStream、银河流数据处理平台等 |
-| 图计算  | 针对大规模图结构数据的处理  | Pregel、GraphX、Hama、GoldenOrb等 |
-| 查询分析计算 | 大规模数据的存储管理和查询分析 | Dremel、Hive、Cassandra、Impala等 |
+| 流计算  | 针对流数据的实时计算  | Flink、Storm、Flume、Streams等 |
+| 图计算  | 针对大规模图结构数据的处理  | Pregel、GraphX、Hama等 |
+| 查询分析计算 | 大规模数据的存储管理和查询分析 | Dremel、Hive、Impala等 |
 
-### Hadoop 生态系统
+### Hadoop 大数据生态体系
 
 #### Hadoop 简介
 
-  + Hadoop是 Apache 软件基金会旗下的一个**开源分布式计算平台**，为用户提供了系统底层细节透明的**分布式基础架构**
++ Hadoop 是 Apache 软件基金会旗下的一个**开源分布式存储计算平台**，为用户提供了系统底层细节透明的**分布式基础架构**
 
-  + Hadoop 是基于 **Java** 开发的，具有很好的跨平台特性，并且可以部署在廉价的计算机集群中
++ Hadoop 的核心是**分布式数据存储（HDFS 分布式文件系统）和分布式计算（MapReduce）**
 
-  + Hadoop的核心是分布式文件系统 **HDFS（Hadoop Distributed File System）和 MapReduce**
++ Hadoop 是基于 **Java** 开发的，具有很好的跨平台特性，并且可以部署在廉价的计算机集群中
 
-  + Hadoop 被公认为行业大数据标准开源软件，在分布式环境下提供了海量数据的处理能力
-
-  + 几乎所有主流厂商都围绕 Hadoop 提供开发工具、开源软件、商业化工具和技术服务，如谷歌、雅虎、微软、思科、淘宝等，都支持 Hadoop
-
-  
-
-#### Hadoop 版本演变
-
-![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_1.png)
++ Hadoop 被公认为行业大数据标准开源软件，在分布式环境下提供了海量数据的处理能力
 
 
-#### Hadoop 生态组件及功能
+#### Hadoop 架构演变
 
-Hadoop 的项目结构不断丰富发展，已经形成一个丰富的 Hadoop 生态系统。
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_15.png)
+
+Hadoop 的版本由最初的 1.0 版本一直发展到最新的 3.0 的版本，现阶段应用最多的是 Hadoop 2.0 的版本。
+
+不同版本之间的区别：
+
+- Hadoop 2.0 相比于 1.0 版本
+  + 新增 YARN 资源管理调度模块（MR 和 AM），同时可运行在其他框架上
+  + 新增 HDFS Federation 机制，增加 Standby Namenode 进行热备份，解决了 1.0 的单点故障导致集群瘫痪问题
+
+- Hadoop 3.0 相比于 2.0 版本
+  + 引入 HDFS 可擦除编码
+  + 支持**多 NameNode （大于等于 2 个）** 
+  + HDFS 通过 IO 共享内存计算区域
+  + MapReduce 基于**内存 + IO + 磁盘**，共同处理数据
+
+
+#### Hadoop 生态系统的组件及功能
+
+Hadoop 广义上指代大数据的一个生态圈，包括很多其他的软件（如 spark、kafka、hive、hbase、zookeeper 等）
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_2.png)
 
 Hadoop 生态组件及功能具体如下表所示：
 
-| **组件**  | **功能**                                                     |
-| --------- | ------------------------------------------------------------ |
-| HDFS      | 分布式文件系统                                               |
-| MapReduce | 分布式并行编程模型                                           |
-| YARN      | 资源管理和调度器                                             |
-| Tez       | 运行在 YARN 之上的下一代 Hadoop 查询处理框架                     |
-| Hive      | Hadoop 上的数据仓库                                           |
-| HBase     | Hadoop 上的非关系型的分布式数据库                             |
-| Pig       | 一个基于 Hadoop 的大规模数据分析平台，提供类似SQL的查询语言Pig Latin |
-| Sqoop     | 用于在 Hadoop 与传统数据库之间进行数据传递                     |
-| Oozie     | Hadoop 上的工作流管理系统                                     |
-| Zookeeper | 提供分布式协调一致性服务，存储配置信息                       |
-| Storm     | 流计算框架                                                   |
-| Flume     | 一个高可用的，高可靠的，分布式的海量日志采集、聚合和传输的系统 |
-| Ambari    | Hadoop 快速部署工具，支持 Apache Hadoop 集群的供应、管理和监控  |
-| Kafka     | 一种高吞吐量的分布式发布订阅消息系统，可以处理消费者规模的网站中的所有动作流数据 |
-| Spark     | 类似于 Hadoop MapReduce 的通用并行框架                        |
+| **组件/软件** | **功能**                                                                |
+| --------- | --------------------------------------------------------------------------|
+| HDFS      | 分布式文件系统                                                             |
+| MapReduce | 分布式并行编程模型                                                          |
+| YARN      | 资源管理和调度器                                                            |
+| Tez       | 运行在 YARN 之上的下一代 Hadoop 查询处理框架                                 |
+| Hive      | Hadoop 上的数据仓库                                                         |
+| HBase     | Hadoop 上的非关系型的分布式数据库                                            |
+| Pig       | 一个基于 Hadoop 的大规模数据分析平台，提供类似 SQL 的查询语言 Pig Latin        |
+| Sqoop     | 用于在 Hadoop 与传统数据库之间进行数据传递                                    |
+| Oozie     | Hadoop 上的工作流管理系统                                                   |
+| Zookeeper | 提供分布式协调一致性服务，存储配置信息                                        |
+| Storm     | 流计算框架                                                                  |
+| Flume     | 一个高可用的，高可靠的，分布式的海量日志采集、聚合和传输的系统                  |
+| Ambari    | Hadoop 快速部署工具，支持 Apache Hadoop 集群的供应、管理和监控                |
+| Kafka     | 一种高吞吐量的分布式发布订阅消息系统，可以处理消费者规模的网站中的所有动作流数据  |
+| Spark     | 类似于 Hadoop MapReduce 的通用并行框架                                       |
+| Flink     | 是一个框架和分布式处理引擎，用于在无边界和有边界数据流上进行有状态的计算         |
 
-#### Hadoop 结构层次
+
+#### Hadoop 生态系统中结构层次
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_3.png)
 
 
 #### Hadoop 框架核心设计
 
-Hadoop框架中最核心的设计是为海量数据提供存储的HDFS和对数据进行计算的MapReduce
-MapReduce的作业主要包括：
-（1）从磁盘或从网络读取数据，即IO密集工作；
-（2）计算数据，即CPU密集工作
-
-Hadoop集群的整体性能取决于CPU、内存、网络以及存储之间的性能平衡。因此运营团队在选择机器配置时要针对不同的工作节点选择合适硬件类型
-一个基本的 Hadoop 集群中的节点主要有
+Hadoop 框架中最核心的设计是为海量数据提供存储的 HDFS 和对数据进行计算的 MapReduce
 - NameNode：负责协调集群中的数据存储
 - DataNode：存储被拆分的数据块
-- SecondaryNameNode：帮助NameNode收集文件系统运行的状态信息
+- SecondaryNameNode：帮助 NameNode 收集文件系统运行的状态信息
 - JobTracker：协调数据计算任务
-- TaskTracker：负责执行由JobTracker指派的任务
+- TaskTracker：负责执行由 JobTracker 指派的任务
 
 
-
-### 分布式文件系统
+### HDFS
 
 #### HDFS 简介
 
-分布式文件系统在物理结构上是由计算机集群中的多个节点构成的，这些节点分为两类，一类叫“主节点”(Master Node)或者称为“名称结点”(NameNode)，另一类叫“从节点”（Slave Node）或者称为“数据节点”(DataNode)。HDFS默认一个块64MB（Hadoop V2块大小128M），一个文件被分成多个块，以块作为存储单位。
+HDFS 分布式文件系统在物理结构上是由计算机集群中的多个节点构成的，这些节点分为两类：
+- 一类叫**主节点（Master Node）或者称为名称结点（NameNode）**
+- 另一类叫**从节点（Slave Node）或者称为数据节点（DataNode）**
+
+HDFS 存储的一个文件被分成多个块，以块作为存储单位，一个块默认 128M。
 
 #### HDFS 整体架构
-
-![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_4.png)
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_5.png)
 
 
-#### HDFS 名称节点
+#### HDFS NameNode
 
-功能：名称节点记录了每个文件中各个块所在的数据节点的位置信息和负责管理分布式文件系统的命名空间（Namespace）
+NameNode 负责维护整个 HDFS 文件系统的目录树，以及每一个路径（文件）所对应的 block 块信息（block的id，及所在的 DataNode 服务器）
 
-​数据结构：它保存了两个核心的数据结构，即FsImage（镜像文件）和EditLog（编辑日志）
-  - FsImage用于维护文件系统树以及文件树中所有的文件和文件夹的元数据
-  - 操作日志文件EditLog中记录了所有针对文件的创建、删除、重命名等操作
+NameNode 对数据的管理采用了三种存储形式：
+- 内存元数据（NameSystem）
+- 磁盘元数据镜像文件（fsimage）
+- 数据操作日志文件（edits 可通过日志运算出元数据）
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_6.png)
 
-#### HDFS 数据节点
 
-数据节点是分布式文件系统HDFS的工作节点，负责数据的存储和读取，会根据客户端或者是名称节点的调度来进行数据的存储和检索，并且向名称节点定期发送自己所存储的块的列表
+#### HDFS DataNode
 
-#### HDFS 第二名称节点
+DataNode 是 HDFS 的工作节点，负责数据的存储和读取，
+- 根据客户端或者是 NameNode 的调度来进行数据的存储和检索
+- 定期向 NameNode 汇报自身所持有的 block 信息（通过心跳信息上报）
 
-功能：它是HDFS架构中的一个组成部分，它是用来保存名称节点中对HDFS 元数据信息的备份，并减少名称节点重启的时间。SecondaryNameNode一般是单独运行在一台机器上
+#### HDFS SecondaryNameNode
 
-工作机制如下图所示：
+SecondaryNameNode 是 NameNode 的热备份，
+- 保证 NameNode 单点故障不会导致集群瘫痪，减少 NameNode 重启的时间
+- SecondaryNameNode 一般是单独运行在一台机器上
+
+SecondaryNameNode 热备份的工作机制如下图：
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_7.png)
 
 
-### 分布式数据库 HBase
+### HBase
 
 #### HBase 简介
 
-HBase 是一个高可靠、高性能、面向列、可伸缩的分布式数据库，是谷歌BigTable的开源实现，主要用来存储非结构化和半结构化的松散数据。HBase的目标是处理非常庞大的表，可以通过水平扩展的方式，利用廉价计算机集群处理由超过10亿行数据和数百万列元素组成的数据表 
-
-#### Hadoop 生态系统中 HBase 与其他部分的关系  
-
-<插入图片8>
-
-  
+HBase 是一个高可靠、高性能、**面向列**、可伸缩的分布式非关系型数据库，是谷歌 BigTable 的开源实现。
+- 主要用来存储非结构化和半结构化的松散数据
+- HBase 可以通过水平扩展的方式，利用廉价计算机集群处理由超过 10 亿行数据和数百万列元素组成的数据表 
+- 主要适用于海量明细数据（十亿、百亿）的随机实时查询，如日志明细、交易清单、轨迹行为等，主要解决数据实时查询处理的需求
+ 
 #### HBase 与传统关系数据库的对比
+|对比分类| 具体内容 |
+|----|----|
+|数据类型 | 关系数据库采用关系模型，具有丰富的数据类型和存储方式，HBase 则采用了更加简单的数据模型，它把数据存储为未经解释的**字符串** |
+|数据操作 | 关系数据库中包含了丰富的操作，其中会涉及复杂的多表连接。HBase 操作则**不存在复杂的表与表之间的关系**，只有简单的插入、查询、删除、清空等 |
+|存储模式 | 关系数据库是基于行模式存储的，HBase 是基于**列存储**的，每个列族都由几个文件保存，不同列族的文件是分离的 |
+|数据索引 | 关系数据库通常可以针对不同列构建复杂的多个索引，以提高数据访问性能。HBase 只有**一个索引行键**，通过巧妙的设计，HBase 中的所有访问方法，或者通过行键访问，或者通过行键扫描，从而使得整个系统不会慢下来 |
+|数据维护 | 在关系数据库中，更新操作会用最新的当前值去替换记录中原来的旧值，旧值被覆盖后就不会存在。而在 HBase 中执行更新操作时，并不会删除数据旧的版本，而是**生成一个新的版本**，旧有的版本仍然保留 |
+|可伸缩性 | 关系数据库很难实现横向扩展，纵向扩展的空间也比较有限。相反，HBase 就是为了实现灵活的水平扩展而开发的，能够轻易地通过在集群中增加或者减少硬件数量来实现性能的伸缩 |
 
-1. 数据类型：关系数据库采用关系模型，具有丰富的数据类型和存储方式，HBase则采用了更加简单的数据模型，它把数据存储为未经解释的**字符串**
 
-2. 数据操作：关系数据库中包含了丰富的操作，其中会涉及复杂的多表连接。HBase操作则**不存在复杂的表与表之间的关系**，只有简单的插入、查询、删除、清空等，因为HBase在设计上就避免了复杂的表和表之间的关系
+#### HBase 表结构
 
-3. 存储模式：关系数据库是基于行模式存储的。HBase是基于**列存储**的，每个列族都由几个文件保存，不同列族的文件是分离的
-
-4. 数据索引：关系数据库通常可以针对不同列构建复杂的多个索引，以提高数据访问性能。HBase只有一个**索引——行键**，通过巧妙的设计，HBase中的所有访问方法，或者通过行键访问，或者通过行键扫描，从而使得整个系统不会慢下来
-
-5. 数据维护：在关系数据库中，更新操作会用最新的当前值去替换记录中原来的旧值，旧值被覆盖后就不会存在。而在HBase中执行更新操作时，并不会删除数据旧的版本，而是**生成一个新的版本**，旧有的版本仍然保留
-
-6. 可伸缩性：关系数据库很难实现横向扩展，纵向扩展的空间也比较有限。相反，HBase和BigTable这些分布式数据库就是为了实现灵活的水平扩展而开发的，能够轻易地通过在集群中增加或者减少硬件数量来实现性能的伸缩
-
-#### HBase表结构
-
-HBase是一个稀疏、多维度、排序的映射表，每个值是一个未经解释的字符串，没有数据类型；用户在表中存储数据，每一行都有一个可排序的行键和任意多的列；表在水平方向由一个或者多个列族组成，一个列族中可以包含任意多个列，同一个列族里面的数据存储在一起；列族支持动态扩展，可以很轻松地添加一个列族或列，无需预先定义列的数量以及类型，所有列均以字符串形式存储，用户需要自行进行数据类型转换
-
-##### HBase 元素
-
-![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_9.png)
+1. HBase 是一个稀疏、多维度、排序的映射表，**每个值是一个未经解释的字符串，没有数据类型**
+2. 用户在表中存储数据，每一行都有一个可排序的行键和任意多的列；
+3. 表在水平方向由一个或者多个列族组成，一个列族中可以包含任意多个列，同一个列族里面的数据存储在一起；
+4. 列族支持动态扩展，可以很轻松地添加一个列族或列，无需预先定义列的数量以及类型，所有列均以字符串形式存储，用户需要自行进行数据类型转换
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_10.png)
 
-#### HBase系统架构
+- 在 HBase 表中，通过行、列族、列限定符和时间戳确定一个单元格（cell），单元格中存储的数据没有数据类型，总被视为字节数组byte[]
+- 每个单元格都保存着同一份数据的多个版本，这些版本采用时间戳进行索引
 
-![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_11.png)
+####  HBase 表和 Region
 
-1.客户端
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_17.png)
 
-  包含访问HBase的接口，同时在缓存中维护着已经访问过的Region位置信息，用来加快后续数据访问过程
+- HBase 自动把表水平划分成多个区域（region），每个 region 会保存一个表里面某段连续的数据；每个表一开始只有一个 region，随着数据不断插入表，region 不断增大，当增大到一个阀值的时候，region 就会等分会两个新的 region（裂变）；
+
+- 当表中的行不断增多，就会有越来越多的 region。这样一张完整的表被保存在多个 RegionServer 上。
+
+
+#### HBase 系统架构
+
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_16.png)
+
+1.Client
+包含访问 HBase 的接口，同时在缓存中维护着已经访问过的 Region 位置信息，用来加快后续数据访问过程
 
 2.Zookeeper
+- 帮助选举出一个 Master 作为集群的总管，并保证在任何时刻总有唯一一个 Master 在运行，这就避免了 Master 的“单点失效”问题；
+- 同时也是一个集群管理工具，被大量用于分布式计算，提供配置维护、域名服务、分布式同步、组服务等
 
-  帮助选举出一个Master作为集群的总管，并保证在任何时刻总有唯一一个Master在运行，这就避免了Master的“单点失效”问题；也是一个集群管理工具，被大量用于分布式计算，提供配置维护、域名服务、分布式同步、组服务等
-
-3.主服务器Master（主要负责表和Region的管理工作）
-
-  - 管理用户对表的增加、删除、修改、查询等操作
-
-  - 实现不同Region服务器之间的负载均衡
-
-  - 在Region分裂或合并后，负责重新调整Region的分布
-
-  - 对发生故障失效的Region服务器上的Region进行迁移
+3.Master 主服务器（主要负责表和 Region 的管理工作）
+- 管理用户对表的增加、删除、修改、查询等操作
+- 实现不同 Region 服务器之间的负载均衡
+- 在 Region 分裂或合并后，负责重新调整 Region 的分布
+- 对发生故障失效的 Region 服务器上的 Region 进行迁移
 
 4.Region服务器
-
-  是HBase中最核心的模块，负责维护分配给自己的Region，并响应用户的读写请求
+是 HBase 中最核心的模块，负责维护分配给自己的 Region，并响应用户的读写请求
 
   
 
-### Hive分布式数据仓库
+### Hive
 
 #### Hive 简介
 
-- Hive 作为Hadoop 的数据仓库处理工具，它所有的数据都存储在Hadoop 兼容的文件系统中
+- Hive 作为 Hadoop 的数据仓库处理工具，它所有的数据都存储在 Hadoop 兼容的文件系统中（HDFS 等）
 
 - Hive 是一个 SQL 解析引擎,它将 SQL 语句转译成 MapReduce 作业并在 Hadoop 上执行
 
-- Hive 表是 HDFS 的一个文件目录，一个表名对应一个目录名，如果有分区表的话，则分区值对应子目录名
+- Hive 表实际上是 HDFS 的一个文件目录，一个表名对应一个目录名，如果有分区表的话，则分区值对应子目录名
 
 - Hive 在加载数据过程中不会对数据进行任何的修改，只是将数据移动到 HDFS 中Hive 设定的目录下，因此，Hive 不支持对数据的改写和添加，所有的数据都是在加载的时候确定的
+
+- Hive 适用于离线数据的批量处理
+
 
 #### Hive 设计特点
 
@@ -218,108 +249,38 @@ HBase是一个稀疏、多维度、排序的映射表，每个值是一个未经
 
 - 可以直接使用存储在Hadoop 文件系统中的数据
 
-- 内置大量用户函数UDF 来操作时间、字符串和其他的数据挖掘工具，支持用户扩展UDF 函数来完成内置函数无法实现的操作
+- 内置大量用户函数 UDF 来操作时间、字符串和其他的数据挖掘工具，支持用户扩展 UDF 函数来完成内置函数无法实现的操作
 
-- 类SQL 的查询方式，将SQL 查询转换为MapReduce 的job 在Hadoop集群上执行
+- 类 SQL 的查询方式，将 SQL 查询转换为 MapReduce 的 job 在 Hadoop 集群上执行
 
-- 编码跟Hadoop同样使用UTF-8字符集
 
 #### Hive 体系结构  
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_12.png)
 
-- 用户接口主要有三个：CLI，Client 和  WUI。其中最常用的是CLI，Cli启动的时候，会同时启动一个Hive副本。Client是Hive的客户端，用户连接至Hive  Server。在启动 Client模式的时候，需要指出Hive Server所在节点，并且在该节点启动Hive Server。  WUI是通过浏览器访问Hive
+- 用户接口主要有三个：CLI，Client 和  WUI。其中最常用的是 CLI
+  + Cli 启动的时候，会同时启动一个 Hive 副本。
+  + Client 是 Hive 的客户端，用户连接至 Hive Server。在启动 Client 模式的时候，需要指出 Hive Server所在节点，并且在该节点启动 Hive Server。  
+  + WUI 是通过浏览器访问 Hive
 
-- Hive将元数据存储在数据库中，如mysql、derby。Hive中的元数据包括表的名字，表的列和分区及其属性，表的属性（是否为外部表等），表的数据所在目录等
+- Hive 将元数据存储在数据库中，如 mysql、derby。Hive 中的元数据包括表的名字，表的列和分区及其属性，表的属性（是否为外部表等），表的数据所在目录等
 
-- 解释器、编译器、优化器完成HQL查询语句从词法分析、语法分析、编译、优化以及查询计划的生成。生成的查询计划存储在HDFS中，并在随后有MapReduce调用执行
+- 解释器、编译器、优化器完成 HQL 查询语句从词法分析、语法分析、编译、优化以及查询计划的生成。生成的查询计划存储在 HDFS 中，并在随后有 MapReduce 调用执行
   
-- Hive的数据文件存储在HDFS中，大部分的查询、计算由MapReduce完成（包含*的查询，比如select * from tbl不会生成MapRedcue任务）
+- Hive 的数据文件存储在 HDFS 中，大部分的查询、计算由 MapReduce 完成
 
   
-
 #### Hive 数据模型
 
-Hive中包含以下数据模型：Table内部表，External Table外部表，Partition分区，Bucket桶。Hive默认可以直接加载文本文件，还支持sequence file 、RCFile
+Hive 中包含以下数据模型：Table 内部表，External Table 外部表，Partition 分区，Bucket 桶。Hive 默认可以直接加载文本文件，还支持 sequence file 、RCFile
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_13.png)
 
-  
-
-– Hive数据库
-
-  类似传统数据库的DataBase，在第三方数据库里实际是一张表。简单示例命令行 hive > create database test_database;
-
-  
-
-  内部表
-
-  Hive的内部表与数据库中的Table在概念上是类似。每一个Table在Hive中都有一个相应的目录存储数据。例如一个表pvs，它在HDFS中的路径为/wh/pvs，其中wh是在hive-site.xml中由${hive.metastore.warehouse.dir} 指定的数据仓库的目录，所有的Table数据（不包括External Table）都保存在这个目录中。删除表时，元数据与数据都会被删除
-```
-    内部表简单示例：
-    创建数据文件：test_inner_table.txt
-
-    创建表：create table test_inner_table (key string)
-    加载数据：LOAD DATA LOCAL INPATH ‘filepath’ INTO TABLE test_inner_table
-    查看数据：select * from test_inner_table; select count(*) from test_inner_table
-    删除表：drop table test_inner_table
-```
-   
-
-  外部表
-
-  外部表指向已经在HDFS中存在的数据，可以创建Partition。它和内部表在元数据的组织上是相同的，而实际数据的存储则有较大的差异。内部表的创建过程和数据加载过程这两个过程可以分别独立完成，也可以在同一个语句中完成，在加载数据的过程中，实际数据会被移动到数据仓库目录中；之后对数据对访问将会直接在数据仓库目录中完成。删除表时，表中的数据和元数据将会被同时删除。而外部表只有一个过程，加载数据和创建表同时完成（CREATE EXTERNAL TABLE ……LOCATION），实际数据是存储在LOCATION后面指定的 HDFS  路径中，并不会移动到数据仓库目录中。当删除一个External Table时，仅删除该链接
-
-```
-    外部表简单示例：
-    创建数据文件：test_external_table.txt
-    创建表：create external table test_external_table (key string)
-    加载数据：LOAD DATA INPATH ‘filepath’ INTO TABLE test_inner_table
-    查看数据：select * from test_external_table; •select count(*) from test_external_table
-    删除表：drop table test_external_table
-```
-   
-
-  分区
-
-  Partition对应于数据库中的Partition列的密集索引，但是Hive中Partition的组织方式和数据库中的很不相同。在Hive中，表中的一个Partition对应于表下的一个目录，所有的Partition的数据都存储在对应的目录中。
-
-  例如pvs表中包含ds和city两个Partition，则对应于ds = 20090801, ctry = US 的HDFS子目录为/wh/pvs/ds=20090801/ctry=US；对应于 ds =  20090801, ctry = CA 的HDFS子目录为/wh/pvs/ds=20090801/ctry=CA
-
-```
-    分区表简单示例：
-    创建数据文件：test_partition_table.txt
-    创建表：create table test_partition_table (key string) partitioned by (dt string)
-    加载数据：LOAD DATA INPATH ‘filepath’ INTO TABLE test_partition_table partition (dt=‘2006’)
-    查看数据：select * from test_partition_table; select count(*) from test_partition_table
-    删除表：drop table test_partition_table
-```
-  
-
-  桶
-
-Buckets是将表的列通过Hash算法进一步分解成不同的文件存储。它对指定列计算hash，根据hash值切分数据，目的是为了并行，每一个Bucket对应一个文件。分区是粗粒度的划分，桶是细粒度的划分，这样做为了可以让查询发生在小范围的数据上以提高效率。适合进行表连接查询、适合用于采样分析。
-
-例如将user列分散至32个bucket，首先对user列的值计算hash，对应hash值为0的HDFS目录为/wh/pvs/ds=20090801/ctry=US/part-00000；hash值为20的HDFS目录为/wh/pvs/ds=20090801/ctry=US/part-00020。
-
-```
-    桶的简单示例：
-    创建数据文件：test_bucket_table.txt
-    创建表：create table test_bucket_table (key string) clustered by (key) into 20 buckets
-    加载数据：LOAD DATA INPATH ‘filepath’ INTO TABLE test_bucket_table
-    查看数据：select * from test_bucket_table; set hive.enforce.bucketing = true
-```
-  
-
-Hive的视图
-
-    视图与传统数据库的视图类似。视图是只读的，它基于的基本表，如果改变，数据增加不会影响视图的呈现；如果删除，会出现问题。•如果不指定视图的列，会根据select语句后的生成
-    示例：create view test_view as select * from tes
-
-
-
-
-
+- 内部表在 Hive 中都有一个相应的目录存储数据，而外部表实际数据是存储在 LOCATION 后面指定的 HDFS 路径中，并不会移动到数据仓库目录中
+- 如果所有处理都由 Hive 来完成，则使用内部表；如果需要用 Hive 和外部其他工具处理同一组数据集，则使用外部表
+- Partition 分区对应于关系数据库中的 Partition 列的密集索引
+- Buckets 是将表的列通过 Hash 算法进一步分解成不同的文件存储
+- 分区是粗粒度的划分，桶是细粒度的划分
 
 #### Hive应用的场景
 
@@ -329,45 +290,85 @@ Hive的视图
 
   
 
-  
-
-### Spark生态系统
+### Spark
 
 #### Spark 简介
 
-Spark的生态系统主要包含了Spark Core（内存计算）、Spark SQL（交互式查询）、Spark Streaming（流处理）、MLLib和GraphX （数据挖掘）等组件
+Spark 主要包含了Spark Core（内存计算）、Spark SQL（交互式查询）、Spark Streaming（流处理）、MLLib 和 GraphX （数据挖掘）等组件
 
-- Spark Core：包含Spark的基本功能；尤其是定义RDD的API、操作以及这两者上的动作。其他Spark的库都是构建在RDD和Spark Core之上的
+- Spark Core：包含 Spark 的基本功能；尤其是定义 RDD 的 API、操作以及这两者上的动作。其他 Spark 的库都是构建在 RDD 和 Spark Core 之上的
 
-- Spark SQL：提供通过Apache Hive的SQL变体Hive查询语言（HiveQL）与Spark进行交互的API。每个数据库表被当做一个RDD，Spark SQL查询被转换为Spark操作
+- Spark SQL：提供通过 Apache Hive 的 SQL 变体 Hive 查询语言（HiveQL）与 Spark 进行交互的 API。每个数据库表被当做一个 RDD，Spark SQL 查询被转换为 Spark 操作
 
-- Spark Streaming：对实时数据流进行处理和控制。Spark Streaming允许程序能够像普通RDD一样处理实时数据
+- Spark Streaming：对实时数据流进行处理和控制。Spark Streaming 允许程序能够像普通 RDD 一样处理实时数据
 
-- MLlib：一个常用机器学习算法库，算法被实现为对RDD的Spark操作。这个库包含可扩展的学习算法，比如分类、回归等需要对大量数据集进行迭代的操作。
+- MLlib：一个常用机器学习算法库，算法被实现为对 RDD 的 Spark 操作。这个库包含可扩展的学习算法，比如分类、回归等需要对大量数据集进行迭代的操作。
 
-- GraphX：控制图、并行图操作和计算的一组算法和工具的集合。GraphX扩展了RDD API，包含控制图、创建子图、访问路径上所有顶点的操作
+- GraphX：控制图、并行图操作和计算的一组算法和工具的集合。GraphX 扩展了RDD API，包含控制图、创建子图、访问路径上所有顶点的操作
 
-  | **应用场景**             | **时间跨度** | **其他框架**           | **Spark生态系统中的组件** |
-  | ------------------------ | ------------ | --------------------- | ------------------------- |
-  | 复杂的批量数据处理        | 小时级        | MapReduce、Hive        | Spark                     |
-  | 基于历史数据的交互式查询  | 分钟级、秒级   | Impala、Dremel、Drill  | Spark SQL                 |
-  | 基于实时数据流的数据处理  | 毫秒、秒级     | Storm、S4              | Spark Streaming           |
-  | 基于历史数据的数据挖掘    | -             | Mahout                 | MLlib                     |
-  | 图结构数据的处理         | -             | Pregel、Hama           | GraphX                    |
+
+| **应用场景**            | **时间跨度** | **其他框架**           | **Spark 中的组件** |
+| ------------------------| ------------ | --------------------- | -------------------|
+| 复杂的批量数据处理        | 小时级       | MapReduce、Hive        | Spark             |
+| 基于历史数据的交互式查询  | 分钟级、秒级  | Impala、Dremel、Drill  | Spark SQL         |
+| 基于实时数据流的数据处理  | 毫秒、秒级    | Storm、S4              | Spark Streaming   |
+| 基于历史数据的数据挖掘    | -            | Mahout                 | MLlib             |
+| 图结构数据的处理         | -            | Pregel、Hama           | GraphX            |
 
 #### Spark运行架构
 
-Spark运行架构包括集群资源管理器（Cluster Manager）、运行作业任务的工作节点（Worker Node）、每个应用的任务控制节点（Driver）和每个工作节点上负责具体任务的执行进程（Executor），资源管理器可以自带或Mesos或YARN
+Spark运行架构包括集群资源管理器（Cluster Manager）、运行作业任务的工作节点（Worker Node）、每个应用的任务控制节点（Driver）和每个工作节点上负责具体任务的执行进程（Executor），资源管理器可以使用自带或 Mesos 或 YARN
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_14.png)
 
-- Cluster Manager：在standalone模式中即为Master主节点，控制整个集群，监控worker。在YARN模式中为资源管理器
+- Cluster Manager：在 standalone 模式中即为 Master 主节点，控制整个集群，监控 worker。在 YARN 模式中为资源管理器
 
-- Worker节点：从节点，负责控制计算节点，启动Executor或者Driver
+- Worker 节点：从节点负责控制计算节点，启动 Executor 或者 Driver
 
-- Driver： 运行Application 的main()函数
+- Driver： 运行 Application 的 main() 函数
 
-- Executor：执行器，是为某个Application运行在worker node上的一个进程
+- Executor：执行器，是为某个 Application 运行在 worker node 上的一个进程
+
+
+### Flink
+
+#### Flink 简介
+
+Apache Flink 是一个框架和分布式处理引擎，用于在无边界和有边界数据流上进行有状态的计算。Flink 能在所有常见集群环境中运行，并能以内存速度和任意规模进行计算。
+
+无边界和有边界数据流
+- 任何类型的数据都是作为事件流产生的。信用卡交易，传感器测量，机器日志或网站或移动应用程序上的用户交互，所有这些数据都作为流生成。
+- 无界流有一个开始但没有定义的结束。它们不会在生成时终止并提供数据。必须持续处理无界流，即必须在摄取事件后立即处理事件。无法等待所有输入数据到达，因为输入是无界的，并且在任何时间点都不会完成。处理无界数据通常要求以特定顺序（例如事件发生的顺序）摄取事件，以便能够推断结果完整性。
+- 有界流具有定义的开始和结束。可以在执行任何计算之前通过摄取所有数据来处理有界流。处理有界流不需要有序摄取，因为可以始终对有界数据集进行排序。有界流的处理也称为批处理
+
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hadoop_18.png)
+
+Apache Flink 擅长处理无界和有界数据集。精确控制时间和状态使 Flink 的运行时能够在无界流上运行任何类型的应用程序。有界流由算法和数据结构内部处理，这些算法和数据结构专门针对固定大小的数据集而设计，从而产生出色的性能
+
+迭代计算性能对比测试：Flink > Spark > Hadoop(MR)。迭代次数越多越明显，性能上 Flink 优于 Spark 和 Hadoop 最主要的原因是 Flink 支持增量迭代，具有对迭代自动优化的功能
+
+#### Flink 特性
+
+Flink能够提供准确的结果，即使数据源是无序的或者晚到达的数据，也能保持结果的准确性。并具有状态和容错能力，可以在保持应用状态的同时无缝的从失败中恢复，并可以保持 exactly-once 的特性，同时可大规模执行，在数千个节点上运行，具有非常好的吞吐量和延迟特性，并也为 YARN 和 Mesos 提供支持
+
+Flink分布式流处理开源框架特性：
+
+- 支持高吞吐、低延迟、高性能的流处理
+- 在运行时同时支持 Batch on Streaming 批处理和 Streaming 流处理
+- 支持迭代计算
+- Flink 在 JVM 内部实现了自己的内存管理
+- 支持具有反压（Backpressure）功能的持续流模型
+- 支持程序自动优化：避免特定情况下Shuffle、排序等昂贵操作，中间结果有必要进行缓存
+- 支持高度灵活的窗口（Window）操作
+- 支持基于time、count、session，以及data-driven的窗口操作，Windows可以通过灵活的触发条件进行定制，以支持复杂的流式传输模式。
+- 支持带有事件时间（event time）的窗口（Window）操作
+- 事件时间的语义使流计算的结果更加精确，尤其是可能产生无序数据或者数据延迟到达的情况下。
+- 支持有状态计算的Exactly-once语义
+- 有状态意味着程序可以保持已经处理过的数据，同时 Flink 的 checkpoint 机制可以确保在发生故障时应用程序状态的一致性语义。
+- 支持基于轻量级的容错机制
+- 它使得系统既能保持高的吞吐率又能保证 exactly-once 的一致性，使 Flink 能从零数据丢失的故障中恢复（可靠性和延迟可以忽略不计），通过分布式状态快照（Snapshot）实现
+- 支持 savepoints 状态版本控制机制（一般手动触发），可以将应用的运行状态保存下来，使得在升级应用或处理历史数据时，而不会丢失状态和确保宕机时间最小
+
 
 ---
 
@@ -396,7 +397,8 @@ CDH 体系架构：
 ### CM（Cloudera Manager）
 
 Cloudera Manager是一个管理 CDH 的端到端的应用，提供 web 界面
-![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/CDH_9.png)
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/CDH_14.png)
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/CDH_15.png)
 
 CM（Cloudera Manager）的功能：
 - 管理：对集群进行管理，例如添加、删除节点等操作
@@ -408,10 +410,19 @@ CM 架构
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/CDH_10.png)
 
 
+### CDH 5.x 和 CDH 6.x 的区别
+
+组件版本
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/CDH_11.png)
+
+操作系统支持
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/CDH_12.png)
+
+数据库支持
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/CDH_13.png)
 
 
-
-
+从CDH 6.0 开始，不再支持单用户模式，安装必须使用 root 或具有 sudo 权限的用户安装，而 CDH 5.x 默认情况下的单用户是cloudera-scm。
 
 
 ---

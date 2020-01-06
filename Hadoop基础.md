@@ -529,7 +529,7 @@ def max_temperature_reducer():
     """计算每个年份的最高温度"""
     # groupby()函数进行数据的分组以及分组后的组内运算
     # groupby()函数同时返回分组关键字和一个与关键字相对应的可迭代对象
-    # 分组关键词设为 year
+    # 分组关键词设为 year，可迭代对象为 temperature_list
     for year, temperature_list in groupby(read(), key=itemgetter(0)):
         # 假设初始最大温度为 0
         max_temperature = 0
@@ -542,13 +542,11 @@ def max_temperature_reducer():
 max_temperature_reducer()
 ```
 
+在 linux 上可以使用`cat [文件名] | python3 mapper.py | python3 reducer.py`
+
 备注：`itertools.groupby()`函数用法
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/MapReduce_4.png)
-
-
-
-
 
 
 
@@ -566,12 +564,11 @@ HADOOP_CMD="/etc/alternatives/hadoop"
 # streaming jar包的路径
 STREAM_JAR_PATH="/opt/cloudera/parcels/CDH-5.16.2-1.cdh5.16.2.p0.8/jars/hadoop-streaming-2.6.0-cdh5.16.2.jar"  
 
-INPUT_FILE_PATH="/test/temper/" #hadoop集群上的资源输入路径
+INPUT_FILE_PATH="/test/temper/*" #hadoop集群上的资源输入路径
 #需要注意的是 intput 文件必须是在 hadooop 集群上的 hdfs 文件中
 OUTPUT_PATH="/test/temper/output"
 #需要注意的是这 output 文件必须是不存在的目录
-
-$HADOOP_CMD fs -rmr  $OUTPUT_PATH
+$HADOOP_CMD fs -rm -r  $OUTPUT_PATH
 
 
 # -mapper：用户自己写的mapper程序，可以是可执行文件或者脚本
@@ -585,8 +582,149 @@ $HADOOP_CMD jar $STREAM_JAR_PATH \
     -reducer "python3 reducer.py" \
     -file ./mapper.py \
     -file ./reducer.py
+```
+
+添加可执行权限并运行，需要同时将`run.sh`脚本文件放入`INPUT_FILE_PATH`目录下
+```shell
+# 修改权限
+chmod 777 run.sh
+# 运行
+source run.sh
+```
+
+
+## HBase
+
+Hadoop database 的简称，也就是基于 Hadoop HDFS 的数据库，是一种 NoSQL 数据库，主要适用于海量明细数据（十亿、百亿）的随机实时查询，如日志明细、交易清单、轨迹行为等。
+
+HBase 主要解决实时数据查询问题
+
+
+
+## Hive
+
+Hive 是构建在 Hadoop 上的数据仓库框架，Hive 并不是数据库，只是一个 SQL 解析引擎，由 Facebook 开发且主要是让开发人员能够通过 SQL 来计算和处理 HDFS 上的结构化数据，适用于离线的批量数据计算。
+
+Hive 中的表是纯逻辑表，就只是表的定义等，即表的元数据。Hive 本身不存储数据，它完全依赖 HDFS 和 MapReduce。这样就可以将结构化的数据文件映射为一张张数据库表，并提供完整的 SQL 查询功能，并将 SQL 语句最终转换为 MapReduce 任务进行运行。
+
+- Hive 作为 Hadoop 的数据仓库处理工具，它所有的数据都存储在 Hadoop 兼容的文件系统（HDFS、Hbase等）中。
+- **Hive 在加载数据过程中不会对数据进行任何的修改，只是将数据移动到 HDFS 中 Hive 设定的目录下，因此，Hive 不支持对数据的改写和添加，所有的数据都是在加载的时候确定的**
+
+
+### Hive shell
+
+Hive Shell 环境是我们和 Hive 交互、发出 HiveQL 命令的主要方式，HQL 命令与 SQL 命令相似
+
+CDH 的 hive 命令的绝对路径为`/opt/cloudera/parcels/CDH-5.16.2-1.cdh5.16.2.p0.8/bin/hive`
+
+
+#### Hive 基本数据类型
+
+| 分类 | 类型 | 描述 | 字面量示例 |
+|----|----|----|----|
+| 数值类型-整型 | TINYINT | 1字节的带符号整数 | 100 |
+|              | SMALLINT | 2字节的带符号整数 | 100，1000 |
+|              | INT | 4字节的带符号整数 | 100，1000，50000 |
+|              | BIGINT | 8字节带符号整数 | 100，1000*10^10 |
+| 数值类型-浮点型 | FLOAT | 4字节单精度浮点数 | 1500.00 |
+|                | DOUBLE | 8字节双精度浮点数 | 750000.00 |
+|                | DEICIMAL | 任意精度的带符号小数 | 1.0 |
+| 字符串类型 | STRING | 不设定长度，最大2GB | |
+|           | VARCHAR | 字符串1-65355长度 | |
+|           | CHAR | 字符串，固定长度255| |
+| 布尔及二进制型 | BOOLEAN | 布尔类型，true/false | |
+|               | BINARY | 二进制型 | |   
+| 时间类型 | TIMESTAMP | 时间戳，纳秒级精度 | 122327493795 |
+|         | DATE | 日期，只包含年月日 | '2016-03-29' |
+| 复杂类型 | ARRAY | 有序的同类型字段的集合 | ARRAY<data_type>：array("a","b","c")|
+|         | MAP | Key-Value键值对，键的类型必须是原始类型，值可以是任意类型 | MAP<primitive_type, data_type>：map("a",1,"b",2) |
+|         | STRUCT | | STRUCT<col_name:data_type,...>：|
+|         | UNION | | UNIONTYPE<data_type,data_type,...>：| 
+
+
+
+STRUCT	字段集合,类型可以不同	struct(‘1’,1,1.0), named_stract(‘col1’,’1’,’col2’,1,’clo3’,1.0)
+UNION	在有限取值范围内的一个值	create_union(1,’a’,63)
+
+
+- Structs：一组由任意数据类型组成的结构
+一组命名的字段，字段类型可以不同
+STRUCT<col_name : data_type, ...>
+eg：struct("a",1,2,3)
+
+
+#### Hive
+
+
+
+
+
+### Hive 体系结构
+
+Hive 的体系结构如下图所示
+
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hive_1.png)
+
+
+
+
+
+
+
+### Hive 的数据导入方式
+
+使用筛选过字段后的气象数据举例
+
+首先使用 CREAT TABLE 语句为气象数据（举例）新建立一个表
+
+```sql
+CREATE TABLE records (  
+    year STRING,  
+    temp INT,         
+    max_temp INT,     
+    min_temp INT) 
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY '\t'
+STORED AS TEXTFILE;
+
+# ROW FORMAT 子句是 HQL 特有的，这个子句声明的是数据文件的每一行是由制表符分隔的文本
+
 
 ```
+
+
+
+
+1. 从本地文件系统中导入数据到 Hive 表：
+
+```shell
+LOAD DATA LOCAL INPATH '本地文件路径' [OVERWRITE] INTO TABLE [hive数据库表名];
+```
+
+- 这一命令告诉 Hive 把指定的本地文件放入仓库目录中，Hive 的默认仓库目录为`usr/hive/warehouse/表名`，CDH 部署的默认仓库目录为`/user/hive/warehouse`（注意为 HDFS 目录）
+
+- OVERWRITE 关键字告诉 Hive 删除表对应目录中已有的所有文件。如果省去这一关键字，Hive 就简单地把新文件加入目录中（除非重名会替换）
+
+- Hive 仓库的表目录下可以有多个文件，使用 Hive 查询表的时候会读入所有这些文件，所以可以直接导入多个文件'文件目录/*'
+
+
+2. 从 HDFS 上导入数据到 Hive 表：
+
+注意，没有 LOCAL 
+
+```shell
+LOAD DATA INPATH 'HDFS文件路径' [OVERWRITE] INTO TABLE [hive数据库表名];
+```
+
+
+3. 从别的表中查询出相应的数据并导入到Hive表中；
+
+
+
+
+4. 在创建表的时候通过从别的表中查询出相应的记录并插入到所创建的表中。
+
+
 
 
 
