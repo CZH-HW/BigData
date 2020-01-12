@@ -21,7 +21,7 @@
 
 5. 文件的各个 block 的存储管理由 datanode 节点承担，datanode 是 HDFS 集群从节点，每一个 block 都可以在多个 datanode 上存储多个副本（副本数量也可以通过参数设置 dfs.replication）
 
-> HDFS 是架在本地文件系统上面的分布式文件系统，它就是个软件，也就是用一套代码把底下所有机器的硬盘变成一个软件下的目录，和 ysql 没有什么区别，思想一样。
+> HDFS 是架在本地文件系统上面的分布式文件系统，它就是个软件，也就是用一套代码把底下所有机器的硬盘变成一个软件下的目录，和 mysql 没有什么区别，思想一样。
 
 
 HDFS 优点：
@@ -592,6 +592,7 @@ chmod 777 run.sh
 source run.sh
 ```
 
+---
 
 ## HBase
 
@@ -600,6 +601,217 @@ Hadoop database 的简称，也就是基于 Hadoop HDFS 的数据库，是一种
 HBase 主要解决实时数据查询问题
 
 
+### HBase 表
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Python HBase
+目前有两个库可以操作 HBase：happybase（推荐，较为简单方便）和 hbase-thrift
+
+#### happybase
+
+首先添加库及其依赖库
+```shell
+pip install happybase
+pip install thrift
+```
+
+连接 HBase 及相关操作
+```python
+import happybase
+from conf import setting
+
+# 创建连接，通过参数 size 来设置连接池中连接的个数
+connection = happybase.Connection(**setting.HBASE)
+
+connection = happybase.Connection('somehost')
+
+# 打开传输，无返回值
+connection.open()
+
+# 显示所有表
+print(connection.tables())
+
+# 创建表，无返回值
+connection.create_table(
+    'mytable',
+    {'cf1': dict(max_versions=10),
+     'cf2': dict(max_versions=1, block_cache_enabled=False),
+     'cf3': dict(),  # use defaults
+    }
+)
+
+# 获取一个表对象，返回一个 happybase.table.Table 对象(返回二进制表名)
+table = connection.table('mytable')
+print("表对象为：")
+print(table)
+# <happybase.table.Table name=b'mytable'>
+
+---------------------------------------------------------------------------
+
+# 获取表中某个 cell 的值（定位于 row-key、列族：列）
+row = table.row(b'row-key')
+print(row[b'cf1:col1'])   # prints the value of cf1:col1
+
+
+# 获取表中多个 cell 的值
+rows = table.rows([b'row-key-1', b'row-key-2'])
+for key, data in rows:
+    print(key, data)
+
+rows_as_dict = dict(table.rows([b'row-key-1', b'row-key-2']))
+
+
+# 
+row = table.row(b'row-key', columns=[b'cf1:col1', b'cf1:col2'])
+print(row[b'cf1:col1'])
+print(row[b'cf1:col2'])
+
+
+row = table.row(b'row-key', columns=[b'cf1'])
+
+row = table.row(b'row-key', timestamp=123456789)
+
+# 返回时间戳
+row = table.row(b'row-key', columns=[b'cf1:col1'], include_timestamp=True)
+value, timestamp = row[b'cf1:col1']
+
+
+# 获取单元格数据，返回一个 list
+values = table.cells(b'row-key', b'cf1:col1', versions=2)
+for value in values:
+    print("Cell data: {}".format(value))
+
+cells = table.cells(b'row-key', b'cf1:col1', versions=3, include_timestamp=True)
+for value, timestamp in cells:
+    print("Cell data at {}: {}".format(timestamp, value))
+
+--------------------------------------------------------------------------
+
+
+# 获取一个扫描器，返回一个 generator，输出所有行值
+for key, data in table.scan():
+    print(key, data)
+
+# 设置扫描表的行范围，起始行位置，结束行位置
+for key, data in table.scan(row_start=b'aaa', row_stop=b'xyz'):
+    print(key, data)
+
+# 密钥前缀
+for key, data in table.scan(row_prefix=b'abc'):
+    print(key, data)
+--------------------------------------------------------------------------
+
+
+# 存储数据，键值对字典形式
+table.put(b'row-key', {b'cf:col1': b'value1', b'cf:col2': b'value2'})
+# 提供时间戳
+table.put(b'row-key', {b'cf:col1': b'value1'}, timestamp=123456789)
+
+
+# 删除数据，删除一行数据
+table.delete(b'row-key')
+# 删除数据，删除一行中某列数据
+table.delete(b'row-key', columns=[b'cf1:col1', b'cf1:col2'])
+
+
+# 批量存储、删除（推荐方法、效率高）
+b = table.batch(timestamp=123456789)    # 根据情况选择是否指定时间戳
+b.put(b'row-key-1', {b'cf:col1': b'value1', b'cf:col2': b'value2'})
+b.put(b'row-key-2', {b'cf:col2': b'value2', b'cf:col3': b'value3'})
+b.put(b'row-key-3', {b'cf:col3': b'value3', b'cf:col4': b'value4'})
+b.delete(b'row-key-4')
+b.send()
+
+# with 语句（不需要 send 语句）
+try:
+    with table.batch(transaction=True) as b:
+        b.put(b'row-key-1', {b'cf:col1': b'value1', b'cf:col2': b'value2'})
+        b.put(b'row-key-2', {b'cf:col2': b'value2', b'cf:col3': b'value3'})
+        b.put(b'row-key-3', {b'cf:col3': b'value3', b'cf:col4': b'value4'})
+        b.delete(b'row-key-4')
+        raise ValueError("Something went wrong!")
+except ValueError:
+    # error handling goes here; nothing is sent to HBase
+    pass
+
+
+
+with table.batch(batch_size=1000) as b:
+    for i in range(1200):
+        # this put() will result in two mutations (two cells)
+        b.put(b'row-%04d' % i, {
+            b'cf1:col1': b'v1',
+            b'cf1:col2': b'v2',
+        })
+
+
+--------------------------------------------------------------------------
+
+# 连接池（连接多个 HBase）
+pool = happybase.ConnectionPool(size=3, host='...', table_prefix='myproject')
+
+
+pool = happybase.ConnectionPool(size=3, host='...')
+with pool.connection() as connection:
+    print(connection.tables())
+
+
+
+with pool.connection() as connection:
+    table = connection.table('table-name')
+    row = table.row(b'row-key')
+
+process_data(row)
+
+
+# 
+pool = happybase.ConnectionPool(size=3, host='...')
+
+def do_something_else():
+    with pool.connection() as connection:
+        pass  # use the connection here
+
+with pool.connection() as connection:
+    # use the connection here, e.g.
+    print(connection.tables())
+
+    # call another function that uses a connection
+    do_something_else()
+
+
+---------------------------------------------------------------------------
+
+
+# 关闭传输，无返回值
+connection.close()
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
 
 ## Hive
 
@@ -611,14 +823,15 @@ Hive 中的表是纯逻辑表，就只是表的定义等，即表的元数据。
 - **Hive 在加载数据过程中不会对数据进行任何的修改，只是将数据移动到 HDFS 中 Hive 设定的目录下，因此，Hive 不支持对数据的改写和添加，所有的数据都是在加载的时候确定的**
 
 
-### Hive shell
+### Hive CLI
 
 Hive Shell 环境是我们和 Hive 交互、发出 HiveQL 命令的主要方式，HQL 命令与 SQL 命令相似
 
 CDH 的 hive 命令的绝对路径为`/opt/cloudera/parcels/CDH-5.16.2-1.cdh5.16.2.p0.8/bin/hive`
 
 
-#### Hive 基本数据类型
+
+### Hive 基本数据类型
 
 | 分类 | 类型 | 描述 | 字面量示例 |
 |----|----|----|----|
@@ -636,26 +849,49 @@ CDH 的 hive 命令的绝对路径为`/opt/cloudera/parcels/CDH-5.16.2-1.cdh5.16
 |               | BINARY | 二进制型 | |   
 | 时间类型 | TIMESTAMP | 时间戳，纳秒级精度 | 122327493795 |
 |         | DATE | 日期，只包含年月日 | '2016-03-29' |
-| 复杂类型 | ARRAY | 有序的同类型字段的集合 | ARRAY<data_type>：array("a","b","c")|
-|         | MAP | Key-Value键值对，键的类型必须是原始类型，值可以是任意类型 | MAP<primitive_type, data_type>：map("a",1,"b",2) |
-|         | STRUCT | | STRUCT<col_name:data_type,...>：|
-|         | UNION | | UNIONTYPE<data_type,data_type,...>：| 
+| 复杂类型 | ARRAY | 有序的同类型字段的集合，可以使用`名称[index]`访问对应的值 | ARRAY<data_type>：array("a","b","c")|
+|         | MAP | Key-Value键值对，键的类型必须是原始类型，值可以是任意类型，可以使用`名称[key]`的方式访问对应的值| MAP<primitive_type, data_type>：map("a",1,"b",2) |
+|         | STRUCT | 包含不同数据类型的元素，通过`名称.字段名`的方式来得到所需要的元素 | STRUCT<col_name:data_type,...>：STRUCT('xiaoming', 12, '2018-12-12')|
+|         | UNION | | UNIONTYPE<data_type,data_type,...>| 
 
 
+示例：
 
-STRUCT	字段集合,类型可以不同	struct(‘1’,1,1.0), named_stract(‘col1’,’1’,’col2’,1,’clo3’,1.0)
-UNION	在有限取值范围内的一个值	create_union(1,’a’,63)
+```sql
+CREATE TABLE students(
+  name      STRING,   -- 姓名
+  age       INT,      -- 年龄
+  subject   ARRAY<STRING>,   --学科
+  score     MAP<STRING,FLOAT>,  --各个学科考试成绩
+  address   STRUCT<houseNumber:int, street:STRING, city:STRING, province：STRING>  --家庭居住地址
+) ROW FORMAT DELIMITED FIELDS TERMINATED BY "\t";
+```
 
 
-- Structs：一组由任意数据类型组成的结构
-一组命名的字段，字段类型可以不同
-STRUCT<col_name : data_type, ...>
-eg：struct("a",1,2,3)
+### Hive 存储格式
 
+Hive 会在 HDFS 为每个数据库上创建一个目录，数据库中的表是该目录的子目录，表中的数据会以文件的形式存储在对应的表目录下。Hive 支持以下几种文件存储格式：
 
-#### Hive
+|格式  | 说明 | 
+|----|----|
+|TextFile | 存储为纯文本文件。 这是 Hive 默认的文件存储格式。这种存储方式数据不做压缩，磁盘开销大，数据解析开销大。|
+|SequenceFile |	SequenceFile 是 Hadoop API 提供的一种二进制文件，它将数据以<key,value>的形式序列化到文件中。这种二进制文件内部使用 Hadoop 的标准的 Writable 接口实现序列化和反序列化。它与 Hadoop API 中的 MapFile 是互相兼容的。Hive 中的 SequenceFile 继承自 Hadoop API 的 SequenceFile，不过它的 key 为空，使用 value 存放实际的值，这样是为了避免 MR 在运行 map 阶段进行额外的排序操作。|
+|RCFile	RCFile | 文件格式是 FaceBook 开源的一种 Hive 的文件存储格式，首先将表分为几个行组，对每个行组内的数据按列存储，每一列的数据都是分开存储。|
+|ORC Files | ORC 是在一定程度上扩展了 RCFile，是对 RCFile 的优化。|
+|Avro Files	Avro | 是一个数据序列化系统，设计用于支持大批量数据交换的应用。它的主要特点有：支持二进制序列化方式，可以便捷，快速地处理大量数据；动态语言友好，Avro 提供的机制使动态语言可以方便地处理 Avro 数据。|
+|Parquet | Parquet 是基于 Dremel 的数据模型和算法实现的，面向分析型业务的列式存储格式。它通过按列进行高效压缩和特殊的编码技术，从而在降低存储空间的同时提高了 IO 效率。|
 
+> 以上压缩格式中 ORC 和 Parquet 的综合性能突出，使用较为广泛，推荐使用这两种格式。
 
+各个存储文件类型指定方式如下：
+```sql
+STORED AS TEXTFILE
+STORED AS SEQUENCEFILE
+STORED AS ORC
+STORED AS PARQUET
+STORED AS AVRO
+STORED AS RCFILE
+```
 
 
 
@@ -665,9 +901,8 @@ Hive 的体系结构如下图所示
 
 ![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Hive_1.png)
 
-
-
-
+- CLI（command-line shell）：通过 hive 命令行的的方式来操作数据；
+- thrift／jdbc：通过 thrift 协议按照标准的 JDBC 的方式操作数据。
 
 
 
@@ -675,7 +910,7 @@ Hive 的体系结构如下图所示
 
 使用筛选过字段后的气象数据举例
 
-首先使用 CREAT TABLE 语句为气象数据（举例）新建立一个表
+首先使用 CREAT TABLE 语句为气象数据（举例）新建立一个内部表
 
 ```sql
 CREATE TABLE records (  
@@ -688,14 +923,11 @@ FIELDS TERMINATED BY '\t'
 STORED AS TEXTFILE;
 
 # ROW FORMAT 子句是 HQL 特有的，这个子句声明的是数据文件的每一行是由制表符分隔的文本
-
-
+# STORED AS 子句指定存储格式（文件类型）
 ```
 
 
-
-
-1. 从本地文件系统中导入数据到 Hive 表：
+1. 从本地文件系统中导入数据到 Hive 内部表：
 
 ```shell
 LOAD DATA LOCAL INPATH '本地文件路径' [OVERWRITE] INTO TABLE [hive数据库表名];
@@ -710,9 +942,8 @@ LOAD DATA LOCAL INPATH '本地文件路径' [OVERWRITE] INTO TABLE [hive数据�
 
 2. 从 HDFS 上导入数据到 Hive 表：
 
-注意，没有 LOCAL 
-
 ```shell
+# 注意，没有 LOCAL 
 LOAD DATA INPATH 'HDFS文件路径' [OVERWRITE] INTO TABLE [hive数据库表名];
 ```
 
@@ -726,8 +957,30 @@ LOAD DATA INPATH 'HDFS文件路径' [OVERWRITE] INTO TABLE [hive数据库表名]
 
 
 
+### Hive Python
+
+安装 PyHive 库及其依赖库
+```
+conda install pyhive
+conda install sasl
+```
+
+```python
+from pyhive import hive   
+conn = hive.Connection(host='192.168.130.124', port=10000, username='hdfs', database='default')
+cursor.execute('SELECT * FROM records LIMIT 10')
+
+```
 
 
+
+
+
+
+
+
+
+## Echarts 可视化
 
 
 
