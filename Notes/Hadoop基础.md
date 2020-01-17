@@ -603,6 +603,91 @@ HBase 主要解决实时数据查询问题
 
 ### HBase 表
 
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/HBase_1.png)
+
+HBase中一张表为例
+- RowKey为行的唯一标识，所有行按照RowKey的字典序进行排序；
+- 该表具有两个列族，分别是personal和office;
+- 其中列族personal拥有name、city、phone三个列，列族office拥有tel、addres两个列
+
+数据是按照列存储，每一列都单独存放，数据即索引，在查询时可以只访问指定列的数据，有效地降低了系统的I/O负担，空(null)列并不占用存储空间，表可以设计的非常稀疏，在插入数据的过程中可以动态的创建列，在HBase的表中添加数据的时候，只能一列一列的添加，不能同时添加多列
+
+
+命名空间namespace
+namespace命名空间指对一组表的逻辑分组，类似RDBMS中的database，方便对表在业务上划分。
+HBase系统默认定义了两个缺省的namespace：
+
+hbase：系统内建表，包含namespace和meta表
+default：用户建表时未指定namespace的表都创建在此
+
+
+
+
+create '表名称', '列族名称1','列族名称2','列族名称N'
+put '表名称', 'RowKey名','列族名称:列名','列值'
+
+
+
+### HBase Shell
+
+使用`hbase shell`命令进入命令行
+
+|命令名|描述|语法|
+|----|----|----|
+|`help` | 查看命令的使用描述 | `help '命令名'` |
+|`whoami` | 查看当前用户信息 | `whoami` |
+|`version` | 返回 HBase 版本信息 | `version` |
+|`status` |	返回 HBase 集群的状态信息 |	`status` |
+|`table_help` |	查看如何操作表 | `table_help` |
+|`list` | 列出 HBase 中存在的所有表 | `list` |
+|`list_namespace` | 列出命名空间 | `list_namespace` |
+|`list_namespace_tables` | 查看命名空间下的所有表 | `list_namespace_tables '命名空间名'` |
+|`describe`	| 显示表相关的详细信息 | `describe '表名'` |
+|`describe_namespace` | 显示命名空间的详细信息 | `describe_namespace '命名空间名'` |
+|`create` |	创建表 | `create '表名', '列族名1', '列族名2', '列族名N'` |
+|`create_namespace` | 创建命名空间 | `create_namespace '命名空间名'` |
+|`alter` | 修改列族	| 添加一个列族：`alter '表名', '列族名'` <br> 删除列族：`alter '表名', {NAME=> '列族名', METHOD=> 'delete'}` |
+|`exists` |	测试表是否存在 | `exists '表名'` |
+|`put` | 添加或修改的表的值 | `put '表名', '行键', '列族名', '列值'` <br> `put '表名', '行键', '列族名:列名', '列值'` |
+|`scan` | 通过对表的扫描来获取表中的值 | 扫描整个表：`scan '表名'` <br> 扫描某个列族：`scan '表名', {COLUMN=> '列族名'}` <br> 扫描某个列族的某个列：`scan '表名', {COLUMN=> '列族名:列名'}` <br> 查询同一个列族的多个列：`scan '表名', {COLUMNS => ['列族名1:列名1', '列族名1:列名2', …]}` <br> 查询表中指定范围行的值：`scan '表名', {STARTROW => '行键名', STOPROW => '行键名'}` <br> LIMIT 返回的行数：`scan '表名', {LIMIT=> 行数}` <br> 过滤等于某个值：`scan '表名', FILTER=>"ValueFilter(=,'binary:列值')"` <br> 过滤包含某个值：`scan '表名', FILTER=>"ValueFilter(=,'substring:列值')"`|
+|`get` | 获取行或单元（cell）的值 |	`get '表名', '行键'` <br> `get '表名', '行键', '列族名'` |
+|`count` | 统计表中行的数量 | `count '表名'` |
+|`get_counter` | 获取计数器 | `get_counter '表名', '行键', '列族:列名'` |
+|`delete` |	删除指定对象的值（可以为表，行，列对应的值，另外也可以指定时间戳的值）| 删除列族的某个列：`delete '表名', '行键', '列族名:列名'` |
+|`deleteall` | 删除指定行的所有元素值 | `deleteall '表名', '行键'` |
+|`truncate` | 重新创建指定表（先 disable 表-> 然后 drop 表-> 最后重新 creat 表） | `truncate '表名'` |
+|`enable` |	使表有效 | `enable '表名'` |
+|`is_enabled` | 是否启用 | `is_enabled '表名'` |
+|`disable` | 使表无效 | `disable '表名'` |
+|`is_disabled` | 是否无效 | `is_disabled '表名'` |
+|`drop` | 删除表（drop 的表必须是 disable 的） | `disable '表名'` <br> `drop '表名'`|
+|`drop_namespace` | 删除命名空间 | `drop_namespace '命名空间名'` |
+|`tools`| 列出 HBase 所支持的工具 | `tools` |	
+|`exit` | 退出 HBase shell | `exit` |	
+|`shutdown` | 关闭 HBase 集群（与 exit 不同） |	`shutdown` |
+
+
+
+
+
+### Java HBase
+
+1.首先使用 Maven 自动引入依赖的 jar 包
+
+在`pox.xml`文件添加 HBase 的<dependency>，版本需要对应，IDEA import Changes
+
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/HBase_10.png)
+
+2.Java 连接 HBase 
+
+```
+
+
+```
+
+
+
+
 
 
 
@@ -631,13 +716,29 @@ pip install thrift
 import happybase
 from conf import setting
 
-# 创建连接，通过参数 size 来设置连接池中连接的个数
-connection = happybase.Connection(**setting.HBASE)
+# 创建连接
+connection = happybase.Connection(host="192.168.130.126", port=9090, timeout=None, autoconnect=True, table_prefix=None, table_prefix_separator=b'_', compat='0.98',  transport='buffered', protocol='binary')
 
-connection = happybase.Connection('somehost')
+参数
+host：主机名 
+port：端口 
+timeout：超时时间 
+autoconnect：连接是否直接打开 
+table_prefix：用于构造表名的前缀，因为一个Hbase会被多个项目共同使用，所以就会导致 table 的命名冲突，为了解决这个问题，可以在创建 table 的时候，手动加上项目的名字作为 table 名字的前缀
+table_prefix_separator：用于 table_prefix 的分隔符 
+compat：兼容模式 
+transport：运输模式 
+protocol：协议
+
 
 # 打开传输，无返回值
 connection.open()
+# 关闭传输，无返回值
+connection.close()
+
+
+--------------------------------------------------------------------------
+
 
 # 显示所有表
 print(connection.tables())
@@ -652,49 +753,39 @@ connection.create_table(
 )
 
 # 获取一个表对象，返回一个 happybase.table.Table 对象(返回二进制表名)
-table = connection.table('mytable')
-print("表对象为：")
-print(table)
+table = connection.table('mytable') 
 # <happybase.table.Table name=b'mytable'>
 
----------------------------------------------------------------------------
 
+--------------------------------------------------------------------------
+
+
+# 定位 row
 # 获取表中某个 cell 的值（定位于 row-key、列族：列）
 row = table.row(b'row-key')
 print(row[b'cf1:col1'])   # prints the value of cf1:col1
 
-
-# 获取表中多个 cell 的值
+# 获取表中多个 row 的值，返回列表[(,{}),(,{})]
 rows = table.rows([b'row-key-1', b'row-key-2'])
 for key, data in rows:
     print(key, data)
-
+# 也可转化为字典形式
 rows_as_dict = dict(table.rows([b'row-key-1', b'row-key-2']))
 
-
-# 
+# 以字典形式返回某 row 某列族某些列及其对应值
 row = table.row(b'row-key', columns=[b'cf1:col1', b'cf1:col2'])
 print(row[b'cf1:col1'])
 print(row[b'cf1:col2'])
 
-
-row = table.row(b'row-key', columns=[b'cf1'])
-
-row = table.row(b'row-key', timestamp=123456789)
-
-# 返回时间戳
+# 返回时间戳，例如 {b'baseInfo:age': (b'29', 1578623474628), b'baseInfo:name': (b'tom', 1578623474560)}
 row = table.row(b'row-key', columns=[b'cf1:col1'], include_timestamp=True)
 value, timestamp = row[b'cf1:col1']
 
-
-# 获取单元格数据，返回一个 list
-values = table.cells(b'row-key', b'cf1:col1', versions=2)
-for value in values:
-    print("Cell data: {}".format(value))
-
+# 检索给定行的列的所有时间戳版本（也可指定最大版本数），返回一个包含所有版本的 list
 cells = table.cells(b'row-key', b'cf1:col1', versions=3, include_timestamp=True)
 for value, timestamp in cells:
     print("Cell data at {}: {}".format(timestamp, value))
+
 
 --------------------------------------------------------------------------
 
@@ -707,9 +798,11 @@ for key, data in table.scan():
 for key, data in table.scan(row_start=b'aaa', row_stop=b'xyz'):
     print(key, data)
 
-# 密钥前缀
+# row_prefix 行号前缀，默认为 None，即不指定前缀扫描，可传入前缀来扫描符合此前缀的行 
 for key, data in table.scan(row_prefix=b'abc'):
     print(key, data)
+
+
 --------------------------------------------------------------------------
 
 
@@ -740,62 +833,35 @@ try:
         b.put(b'row-key-2', {b'cf:col2': b'value2', b'cf:col3': b'value3'})
         b.put(b'row-key-3', {b'cf:col3': b'value3', b'cf:col4': b'value4'})
         b.delete(b'row-key-4')
-        raise ValueError("Something went wrong!")
+
 except ValueError:
-    # error handling goes here; nothing is sent to HBase
-    pass
+    # error handling goes here;
+    raise ValueError("Something went wrong!")
 
-
-
+# 设置 batch 大小
 with table.batch(batch_size=1000) as b:
     for i in range(1200):
         # this put() will result in two mutations (two cells)
-        b.put(b'row-%04d' % i, {
-            b'cf1:col1': b'v1',
-            b'cf1:col2': b'v2',
-        })
+        b.put(b'row-{}'.format(i), {b'cf1:col1': b'v1', b'cf1:col2': b'v2'})
 
 
 --------------------------------------------------------------------------
 
-# 连接池（连接多个 HBase）
-pool = happybase.ConnectionPool(size=3, host='...', table_prefix='myproject')
 
+# 使用连接池
+# 创建连接，通过参数 size 来设置连接池中连接的个数
+pool = happybase.ConnectionPool(size=3, host='192.168.130.126', table_prefix='myproject')
 
-pool = happybase.ConnectionPool(size=3, host='...')
+pool = happybase.ConnectionPool(size=3, host='192.168.130.126')
 with pool.connection() as connection:
     print(connection.tables())
-
-
 
 with pool.connection() as connection:
     table = connection.table('table-name')
     row = table.row(b'row-key')
 
-process_data(row)
-
-
-# 
-pool = happybase.ConnectionPool(size=3, host='...')
-
-def do_something_else():
-    with pool.connection() as connection:
-        pass  # use the connection here
-
-with pool.connection() as connection:
-    # use the connection here, e.g.
-    print(connection.tables())
-
-    # call another function that uses a connection
-    do_something_else()
-
 
 ---------------------------------------------------------------------------
-
-
-# 关闭传输，无返回值
-connection.close()
-
 
 ```
 
@@ -957,6 +1023,17 @@ LOAD DATA INPATH 'HDFS文件路径' [OVERWRITE] INTO TABLE [hive数据库表名]
 
 
 
+
+
+### Hive Java
+
+
+
+
+
+
+
+
 ### Hive Python
 
 安装 PyHive 库及其依赖库
@@ -968,6 +1045,7 @@ conda install sasl
 ```python
 from pyhive import hive   
 conn = hive.Connection(host='192.168.130.124', port=10000, username='hdfs', database='default')
+cursor = conn.cursor()
 cursor.execute('SELECT * FROM records LIMIT 10')
 
 ```
@@ -980,7 +1058,152 @@ cursor.execute('SELECT * FROM records LIMIT 10')
 
 
 
+
+
+
+
+
+
+---
+
+
 ## Echarts 可视化
+
+### 安装 Echarts
+
+Echarts 可以看作 JS 库，构建项目之前需要下载 Echarts 库并引入到项目中
+
+下载地址：https://echarts.apache.org/zh/download.html
+
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Echarts_1.png)
+
+可以看到下载方法有三种
+
+一般选择从 GitHub 下载编译产物
+
+![](https://github.com/CZH-HW/CloudImg/raw/master/BigData/Echarts_2.png)
+
+将下载后的`echarts.js`文件放入`工程目录/js`目录下
+
+ECharts 的引入方式就可以像 JavaScript 库一样用 script 标签引入即可
+
+创建一个 html 文件，创建一个简单的图表
+- 引入资源文件js
+- 定义图表显示区域
+- 初始化echarts对象
+- 指定相关配置项（数据、样式）
+- 渲染图表
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ECharts</title>
+    <!-- 引入 echarts.js -->
+    <script src="js/echarts.js"></script>
+</head>
+<body>
+    <!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+    <div id="main" style="width: 1200px;height:800px;"></div>
+    <script type="text/javascript">
+        // 基于准备好的dom，初始化echarts实例
+        var myChart = echarts.init(document.getElementById('main'));
+
+        // 指定图表的配置项和数据
+        var option = {
+            title: {
+                text: 'ECharts 柱状图'
+            },
+            tooltip: {},
+            legend: {
+                data:['销量','成本']
+            }, 
+            xAxis: {
+                data: ["衬衫","羊毛衫","雪纺衫","裤子","高跟鞋","袜子"]
+            },
+            yAxis: {},
+            series: [{
+                name: '销量',
+                type: 'bar',
+                data: [5, 20, 36, 10, 10, 20]
+            },
+            {
+                name: '成本',
+                type: 'bar',
+                data: [0.5, 2, 3.6, 1, 1, 2]
+            }
+        ]
+        };
+
+        // 使用刚指定的配置项和数据显示图表。
+        myChart.setOption(option);
+    </script>
+</body>
+</html>
+```
+
+
+
+### Echarts 异步加载数据
+
+jquery
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
